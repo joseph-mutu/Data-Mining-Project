@@ -1,12 +1,38 @@
-s = read.csv('D:/Study/DATA/data mining/happiness_train_complete.csv)
-dim(s)
-sum(is.na(s[0]))
-dim(s[0])
-dim(s)[2]
-count = 0
+
+# 读取数据
+s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_abbr.csv')
+# 删除id列
+s = subset(s, select = -c(id))
+#提取所有没有 NA 的列
 for (i in 1:dim(s)[2]){
-  if(sum(is.na(s[i]))>0){
-    count = count + 1
+  if(sum(is.na(s[i])) == 0){
+    col_not_NA = c(col_not_NA,colnames(s[i]))
   }
 }
-print(count)
+length(col_not_NA)
+#将所有没有 NA 的列提取并做一个新的数据表
+new_data = s[,col_not_NA]
+dim(new_data)
+colnames(new_data)
+#删除 Survey Time
+new_data = subset(new_data, select = -c(survey_time))
+dim(new_data)
+
+Model_linear = lm(formula = happiness ~. +survey_type:inc_ability, data = new_data )
+
+#读取测试数据，进行输出happiness_test_abbr
+test_data = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_abbr.csv')
+test_data = subset(test_data, select = -c(id))
+test_data = subset(test_data, select = -c(survey_time))
+col_not_NA = col_not_NA[-5]
+length(col_not_NA)
+test_data_not_na = test_data[,col_not_NA]
+dim(test_data_not_na)
+dim(new_data)
+happy_pre = predict(Model_linear, newdata = test_data_not_na)
+
+id = seq(1:2968)
+result = data.frame(id,happy_pre)
+dim(result)
+save_path = "D:/Study/Jean Monnet/Data Mining/Project/Data/result.csv"
+write.csv(result,save_path,row.names = FALSE)
