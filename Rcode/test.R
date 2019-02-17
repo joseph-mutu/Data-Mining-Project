@@ -37,6 +37,7 @@ happy_pre = predict(Model_linear, newdata = test_data_not_na)
 
 id = seq(1:2968)
 result = data.frame(id,happy_pre)
+class(result[1,2])
 dim(result)
 colnames(result) = c("id","happiness")
 colnames(result)

@@ -1,43 +1,41 @@
+source("DataProcessFunctions.R")
+source("writeResult.R")
+source("test_functions.R")
+library("FactoMineR")
+library("factoextra")
+library(e1071)
+
 s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
 
-# 删除id列
-s = subset(s, select = -c(id))
-col_not_NA = c()
-#提取所有没有 NA 的列
-for (i in 1:dim(s)[2]){
-  if(sum(is.na(s[,i])) == 0 && s[1,i]!=""){
-    col_not_NA = c(col_not_NA,colnames(s[i]))
-  }
-}
-length(col_not_NA)
-new_data = s[,col_not_NA]
-colnames(new_data)
-new_data = subset(new_data, select = -c(survey_time))
-new_data = subset(new_data, select = -c(edu_other))
+new_data_col_names = processData(s)
+data = getDataFrom_new_data_col_names(new_data_col_names)
+col_na_names = getCol_names_From_new_data_col_names(new_data_col_names)
+
+#抽样train和test
+index = sample(2,nrow(data),replace = T,prob = c(0.7,0.3))
+train_data = data[index==1,]
+test_data = data[index==2,]
+
+#SVM
+type_reg = "eps-regression"
+type_reg2 = "nu-regression"
+
+model_SVM = svm(happiness ~., data = train_data,type = type_reg2,kernel ="radial")  
+SVM_result = data.frame(predict(model_SVM,test_data))
+score = result_compare(SVM_result,test_label)
+score
 
 
-Model_linear = lm(formula = happiness ~. +survey_type:public_service_9, data = new_data )
+#test
+test_s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv')
+col_na_names = unlist(col_na_names)
+test_s = test_s[,col_na_names]
+Test_data_Real = processTestdata(test_s,col_na_names)
+dim(Test_data_Real)
+SVM_test_result = predict(model_SVM,Test_data_Real)
+length(SVM_test_result)
+class(SVM_test_result[20])
+writeResult(SVM_test_result)
 
-test_data = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv')
-test_data = subset(test_data, select = -c(id))
-
-dim(test_data)
-dim(new_data)
-length(col_not_NA)
-col_not_NA
-dim(test_data)
-dim(new_data)
-col_not_NA = col_not_NA[-1]
-length(col_not_NA)
-test_data = test_data[,col_not_NA]
-dim(test_data)
-result = predict(Model_linear, newdata = test_data)
-result = round(result)
-length(result)
-dim(new_result)
-
-new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
-new_result[,2] = result
-new_result[,2]
-save_path = "D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv"
-write.csv(new_result,save_path,row.names = FALSE)
+test_s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv')
+class(test_s[2,2])
