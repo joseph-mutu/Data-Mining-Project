@@ -8,139 +8,216 @@ library("FactoMineR")
 library("factoextra")
 library(e1071)
 library(arules)
+library(glmnet)
+library("neuralnet")
+library(nnet)
+library(rpart)
+library(neuralnet)
+
+
 
 
 s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
 data = Outlier_delete(s)
-data_id = data[,"id"]
+data_id = data.frame(data[,"id"])
+data = Interpolate_ALL(data)
+col_names_for_test = get_Col_names_For_test(data)
 
-data_invest = Combine_invest_feature(data)
-data = cbind(data,data_invest)
-data = Process_col(data)
-
-col_need_inter = c()
-for (i in 1:ncol(data)){
-  index = which(data[,colnames(data)[i]] < 0)
-  if(length(index)>0){
-    col_need_inter = c(col_need_inter,colnames(data)[i])
-  }
-}
-data = interpolate_outlier_round(data,col_need_inter)
-need_inter_col = 	c("hukou_loc","family_income")
-data = interpolate(data,need_inter_col)
-
-col_not_na = Extract_col_not_na(data)
-data = data[,col_not_na]
-col_names_for_test = col_not_na
-
-
-#添加新的一列 inc_exp - income
-data_inc_income = data.frame(abs(data[,"inc_exp"] - data[,"income"]))
-colnames(data_inc_income) = "inc_income"
-data = cbind(data,data_inc_income)
-
-#添加新的一列 BMI
-data_BMI = data.frame(abs(data[,"weight_jin"] / data[,"height_cm"]^2))
-colnames(data_BMI) = "BMI"
-data = cbind(data,data_BMI)
-#尝试删除weight_jin 和 height_cm 的值
-weight_height = c("weight_jin","height_cm")
-data = data[,-which(names(data) %in% weight_height )]
-
-
-
-#以下尝试合并 leisure—_1 到 Leisure_11 的特征，取round(mean)
-feature_leisure = c("leisure_1","leisure_2","leisure_3","leisure_4","leisure_5",
-                    "leisure_6","leisure_7","leisure_8","leisure_9","leisure_10",
-                    "leisure_11")
-data_leisure = data[,feature_leisure]
-data_leisure_combine = round(data.frame(apply(data_leisure,1,mean)))
-data_leisure_combine = data.frame(data_leisure_combine)
-colnames(data_leisure_combine) = "leisure"
-data = cbind(data,data_leisure_combine)
-#删除数据中的 leisure_1 到 Leisure_11 
-data = data[,-which(names(data) %in% feature_leisure )]
-dim(data)
-
-#合并 trust 特征
-feature_trust_stranger = c("trust_2","trust_3","trust_4","trust_7","trust_9",
-                    "trust_10","trust_11","trust_12","trust_13")
-data_trust_stranger = data[,feature_trust_stranger]
-data_trust_stranger_combine = round(data.frame(apply(data_trust_stranger,1,mean)))
-data_trust_stranger_combine = data.frame(data_trust_stranger_combine)
-colnames(data_trust_stranger_combine) = "trust_stranger"
-data = cbind(data,data_trust_stranger_combine)
-
-feature_trust_familar = c("trust_1","trust_5","trust_6","trust_8")
-data_trust_familar = data[,feature_trust_familar]
-dim(data_trust_familar)
-data_trust_familar_combine = round(data.frame(apply(data_trust_familar,1,mean)))
-data_trust_familar_combine = data.frame(data_trust_familar_combine)
-colnames(data_trust_familar_combine) = "trust_familar"
-data = cbind(data,data_trust_familar_combine)
-#删除数据中的 trust 数据集
-data = data[,-which(names(data) %in% feature_trust_stranger )]
-data = data[,-which(names(data) %in% feature_trust_familar )]
+data = Combine_All_features(data)
 
 dim(data)
 
-col_names = colnames(data)
-col_names
 tem_store = data
+colnames(data)
 
 
-
-
-
+data = subset(data,select = -c(survey_type,province,nationality,edu,income,
+                               political,floor_area,health_problem,hukou,
+                               hukou_loc,leisure_12,socialize,learn,socia_outing,
+                               work_exper,family_income,son,f_political,f_work_14,
+                               m_birth,m_political,inc_exp,invest,inc_income,trust_familar,
+                               property_own,property_other,media_old,media_new,insurance,effort,f_birth,
+                               religion_freq,house,marital))
+#以下进行归一化
 
 data_label = data.frame(data[,"happiness"])
 colnames(data_label) = "happiness"
 data = subset(data,select = -c(happiness))
-data = scale(data,center=T,scale=F)
+
+data = scale(data,center = T,scale = T)
+
+
+maxs <- apply(data, 2, max) 
+mins <- apply(data, 2, min)
+data <- as.data.frame(scale(data, center = mins, scale = maxs - mins))
+
+
+# data = scale(data,center=T,scale=T)
 data = data.frame(cbind(data_label,data))
-dim(data)
-#抽样train和test
-index = sample(2,nrow(data),replace = T,prob = c(0.7,0.3))
+# data = data.frame(cbind(data,data_province))
+# Model_linear = lm(formula = happiness ~.,data = data )
+# summary(Model_linear)
+
+
+
+
+
+#以下测试神经网络的性能
+
+index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
 train_data = data.frame(data[index==1,])
+train_label = data.frame(data[index==1,"happiness"])
 test_data = data.frame(data[index==2,])
 test_data = subset(test_data,select = -c(happiness))
 test_label = data.frame(data[index==2,1])
-test_id = data.frame(data_id[index==2])
+test_id = data.frame(data_id[index==2,1])
+
+
+
+
+
+
+
+data_centra = data
+
+avg_score = 0.0
+
+for ( i in 1:200){
+  #抽样train和test
+  index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
+  train_data = data.frame(data[index==1,])
+  test_data = data.frame(data[index==2,])
+  test_data = subset(test_data,select = -c(happiness))
+  test_label = data.frame(data[index==2,1])
+  test_id = data.frame(data_id[index==2,1])
+  
+  
+  #Province_SVM
+  # print(i)
+  # result_test = testData_province_SVM(train_data,test_data,test_id)
+  # score = result_compare(data.frame(result_test),test_label)
+  
+  #Porvince_lm
+  # result_test = testData_province_lm(train_data,test_data,test_id)
+  # score = result_compare(data.frame(result_test),test_label)
+  
+  #Lm model
+  Model_linear = lm(formula = happiness ~.,data = train_data )
+  lm_test_result = predict(Model_linear,test_data)
+  score = result_compare(data.frame(lm_test_result),test_label)
+  # score
+  # print(i)
+  # type_reg = "eps-regression"
+  # type_reg2 = "nu-regression"
+  # model_SVM_1 = svm(happiness ~., data = train_data,type = type_reg,kernel ="radial")
+  # SVM_test_result_1 = predict(model_SVM_1,test_data)
+  # score = result_compare(data.frame(SVM_test_result_1),test_label)
+  
+  
+  avg_score = avg_score + score
+  
+}
+summary(Model_linear)
+avg_score/200
+data[,"inc_ability"]
 
 #SVM
 type_reg = "eps-regression"
 type_reg2 = "nu-regression"
+model_SVM_1 = svm(happiness ~., data = data,type = type_reg,kernel ="radial") 
+SVM_test_result_1 = predict(model_SVM_1,test_data)
+SVM_test_result_1 = round(SVM_test_result_1)
+score = result_compare(data.frame(SVM_test_result_1),test_label)
 
-Model_linear = lm(formula = happiness ~.,data = train_data )
+
+reg = rpart(happiness~.,data)
+
+
+#lm模型
+Model_linear = lm(formula = happiness ~.,data = data )
 lm_test_result = predict(Model_linear,test_data)
 lm_test_result = round(lm_test_result)
 score = result_compare(data.frame(lm_test_result),test_label)
 score 
 
-model_SVM_1 = svm(happiness ~., data = train_data,type = type_reg,kernel ="radial") 
-SVM_test_result_1 = predict(model_SVM_1,test_data)
-SVM_test_result_1 = round(SVM_test_result_1)
-score = result_compare(data.frame(SVM_test_result_1),test_label)
-score
 
 
+
+colnames(data)
+data = subset(data,select = -c(f_birth,f_work_14,m_birth,
+                               m_work_14))
+dim(data)
+colnames(data)
 model_SVM = svm(happiness ~., data = data,type = type_reg,kernel ="radial") 
-SVM_test_result = predict(model_SVM,test_data)
 
-score = result_compare(data.frame(SVM_test_result),test_label)
 
 
 
 #以下对 test_set 进行同样的处理
 
-test_set = getTestdata(col_names_for_test)
-test_set = scale(test_set,center=T,scale=F)
 
+dataset = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
+# test_set_id = getTest_id()
+
+# data_province_test_set = data.frame(test_set[,"province"])
+# colnames(data_province_test_set) = "province"
+# test_set = subset(test_set,select = -c(province))
+
+# reg = rpart(happiness~.,data)
+# result = predict(reg,data.frame(test_set))
+
+
+#Province_SVM 模型
+# result_test = testData_province_SVM(data,test_set,test_set_id)
+# result_test
+
+test_set = getTestdata(col_names_for_test)
+
+# test_set = subset(test_set,select = -c(f_birth,f_work_14,m_birth,
+#                                        m_work_14))
+
+test_set = subset(test_set,select = -c(survey_type,province,nationality,edu,income,
+                               political,floor_area,health_problem,hukou,
+                               hukou_loc,leisure_12,socialize,learn,socia_outing,
+                               work_exper,family_income,son,f_political,f_work_14,
+                               m_birth,m_political,inc_exp,invest,inc_income,trust_familar,
+                               property_own,property_other,media_old,media_new,insurance,effort,f_birth,
+                               religion_freq,house,marital))
+
+maxs <- apply(test_set, 2, max) 
+mins <- apply(test_set, 2, min)
+test_set <- as.data.frame(scale(test_set, center = mins, scale = maxs - mins))
 dim(test_set)
 dim(data)
-SVM_test_result = predict(model_SVM,test_set)
-SVM_test_result = round(SVM_test_result)
-SVM_test_result
-writeResult(SVM_test_result)
+
+n <- names(data)
+
+f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
+nn_4 <- neuralnet(f,data=data,hidden = 4,linear.output=T,err.fct = "sse",stepmax = 1e+06,
+                threshold = 0.05)
+nn_5 <- neuralnet(f,data=data,hidden = 5,linear.output=T,err.fct = "sse",stepmax = 1e+06,
+                  threshold = 0.05)
+
+
+net.predict<-compute(nn_5,test_set)
+result = data.frame(net.predict$net.result)
+writeResult(result)
 new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
 class(new_result[2,2])
+new_result[2,2]
+
+dim(result)
+dim(test_data)
+score = result_compare(data.frame(result),test_label)
+score
+
+
+
+
+# SVM_test_result_1 = predict(model_SVM,test_set)
+
+
+writeResult(SVM_test_result_1)
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]

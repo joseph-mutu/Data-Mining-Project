@@ -1,69 +1,59 @@
-#将数据特征合并
 rm(list=ls())
-source("TestSetProcess.R")
 source("DataProcessFunctions.R")
+source("TestSetProcess.R")
 source("writeResult.R")
 source("test_functions.R")
+
 library("FactoMineR")
 library("factoextra")
 library(e1071)
 library(arules)
+library(glmnet)
+library("neuralnet")
+library(nnet)
+library(rpart)
+library(Hmisc)
+library(corrplot)
+
+
 
 s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
-data = Outlier_delete(s)
-data_id = data[,"id"]
+test_set = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
+test_set = subset(test_set,select = -c(id,edu_other,invest_other,property_other,
+                                       survey_time,city,county,work_manage,minor_child,
+                                       nationality,edu_yr,join_party,work_yr,work_type,
+                                       marital_1st,s_birth,marital_now,s_edu,s_political,work_status,
+                                       s_hukou,s_income,s_work_exper,s_work_status,s_work_type,edu_status))
 
-
-need_inter_col = 	c("hukou_loc","family_income")
-data = interpolate(data,need_inter_col)
-
-data_invest = Combine_invest_feature(data)
-data = Process_col(data)
-
-col_not_na = Extract_col_not_na(data)
-data = data[,col_not_na]
-data = cbind(data,data_invest)
-
-col_need_inter = c()
-for (i in 1:ncol(data)){
-  index = which(data[,colnames(data)[i]] < 0)
-  if(length(index)>0){
-    col_need_inter = c(col_need_inter,colnames(data)[i])
+test_set = interpolate_outlier_Test(test_set,colnames(test_set))
+need_inter_col = colnames(test_set)
+for (i in 1:length(need_inter_col)){
+  #找出在 need_inter_col 列表中小于 0 的值，以平均值插值
+  tem_need_inter_position = which(data[,need_inter_col[i]] < 0)
+  num_need_inter = length(tem_need_inter_position)
+  if(num_need_inter > 0 ){
+    for (j in 1:num_need_inter){
+      data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[1,i]
+    }
   }
 }
-data = interpolate_outlier_round(data,col_need_inter)
-col_names = colnames(data)
 
 
-index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
-train_data = data[index==1,]
-test_data = data[index==2,]
-test_data = subset(test_data,select = -c(happiness))
-test_label = data.frame(data[index==2,1])
-test_id = data.frame(data_id[index==2])
 
-#进行普通的 SVM 测试
-type_reg = "eps-regression"
-type_reg2 = "nu-regression"
-model_SVM = svm(happiness ~., data = train_data,type = type_reg,kernel ="radial") 
-SVM_test_result = predict(model_SVM,test_data)
-score = result_compare(data.frame(SVM_test_result),test_label)
-score
+corrplot(factor_Corr,method="number")
+#social_friend and social_neightbor
 
-#提取省份的SVM测试
-result_test = testData_province_lm(train_data,test_data,test_id)
-score = result_compare(result_test,test_label)
-score
+#cha zhi
 
+#小于0
+#class class_10_before class_10_after class_14 work_status family_income family_m son
+#daughter f_birth f_edu f_political f_work_14 m_birth m_edu m_political m_work_14 status_peer
 
-#进行真实的 test_set 数据写入
-test_id = getTest_id()
-dim(test_id)
-test_set = getTestdata(colnames(data))
-dim(test_id)
-dim(data)
-result_test = testData_province_lm(data,test_set,test_id)
-writeResult(result_test)
-new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
-new_result[2,2]
+# data = subset(data, select = -c(id,edu_yr,s_work_type,
+#                                 s_work_status,invest_other,work_manage,
+#                                 work_type,work_yr,work_status,join_party,
+#                                 edu_other,city,county,survey_time,
+#                                 property_other,invest_0,invest_1,invest_2,
+#                                 invest_3,invest_4,invest_5,invest_6,invest_7,
+#                                 invest_8,invest_other))
 

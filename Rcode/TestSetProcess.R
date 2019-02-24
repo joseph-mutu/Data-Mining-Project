@@ -57,7 +57,156 @@ processTestdata <- function(data,col_names){
   data = data[,-which(names(data) %in% feature_trust_stranger )]
   data = data[,-which(names(data) %in% feature_trust_familar )]
   
-  return(data)
+  # 以下开始尝试合并property特征
+  property_own = c("property_1","property_2")
+  data_property_own = data[,property_own]
+  data_property_own_combine = ceiling(data.frame(apply(data_property_own,1,mean)))
+  data_property_own_combine = data.frame(data_property_own_combine)
+  colnames(data_property_own_combine) = "property_own"
+  data = cbind(data,data_property_own_combine)
+  dim(data)
+  #删除数据中的 property_1 到 property_2 
+  data = data[,-which(names(data) %in% property_own )]
+  
+  ## 合并property_0_8
+  property_other = c("property_0","property_3","property_4","property_5",
+                     "property_8","property_7","property_6")
+  data_property_other = data[,property_other]
+  
+  data_property_other_combine = ceiling(data.frame(apply(data_property_other,1,mean)))
+  data_property_other_combine = data.frame(data_property_other_combine)
+  colnames(data_property_other_combine) = "property_other"
+  data = cbind(data,data_property_other_combine)
+  #删除数据中的 property_0 到 property_8 
+  data = data[,-which(names(data) %in% property_other )]
+  
+  
+  #以下尝试合并 Public_service
+  feature_society = c("public_service_1","public_service_2","public_service_3",
+                      "public_service_4","public_service_5","public_service_6",
+                      "public_service_7","public_service_8","public_service_9")
+  data_feature_society = data[,feature_society]
+  data_feature_society_combine = round(data.frame(apply(data_feature_society,1,mean)))
+  data_feature_society_combine = data.frame(data_feature_society_combine)
+  colnames(data_feature_society_combine) = "society_service"
+  data = cbind(data,data_feature_society_combine)
+  #删除数据中的 public_service_1 到 public_service_9
+  data = data[,-which(names(data) %in% feature_society )]
+  tem_data_public_delete = data
+  
+  #尝试合并 Meida_1 Media_2 Media_3 
+  feature_media_old = c("media_1","media_2","media_3","media_4")
+  data_feature_media_old = data[,feature_media_old]
+  data_feature_media_old_combine = round(data.frame(apply(data_feature_media_old,1,mean)))
+  data_feature_media_old_combine = data.frame(data_feature_media_old_combine)
+  colnames(data_feature_media_old_combine) = "media_old"
+  data = cbind(data,data_feature_media_old_combine)
+  #删除数据中的 media_1 到 media_2
+  data = data[,-which(names(data) %in% feature_media_old )]
+  
+  feature_media_new = c("media_5","media_6")
+  data_feature_media_new = data[,feature_media_new]
+  data_feature_media_new_combine = round(data.frame(apply(data_feature_media_new,1,mean)))
+  data_feature_media_new_combine = data.frame(data_feature_media_new_combine)
+  colnames(data_feature_media_new_combine) = "media_new"
+  data = cbind(data,data_feature_media_new_combine)
+  #删除数据中的 media_1 到 media_2
+  data = data[,-which(names(data) %in% feature_media_new )]
+  
+  data_age = data.frame(data[,"birth"])
+  data_age = 2015 - data_age 
+  colnames(data_age) = "age"
+  data = cbind(data,data_age)
+  data = subset(data,select = -c(birth))
+  
+  #以下对 class进行处理
+  
+  #class - class_10_before 称为 change
+  feature_change = c("class","class_10_before")
+  data_change = data[,feature_change]
+  data_change_combine = data_change[,1] - data_change[,2]
+  data_change_combine = data.frame(data_change_combine)
+  colnames(data_change_combine) = "change"
+  data = cbind(data,data_change_combine)
+  
+  #class_10_after - class 称为 attitude
+  feature_attitude = c("class_10_after","class")
+  data_attitude = data[,feature_attitude]
+  data_attitude_combine = data_attitude[,1] - data_attitude[,2]
+  data_attitude_combine = data.frame(data_attitude_combine)
+  colnames(data_attitude_combine) = "attitude"
+  data = cbind(data,data_attitude_combine)
+  
+  #class - class_14 family_change
+  feature_family_change = c("class","class_14")
+  data_family_change = data[,feature_family_change]
+  data_family_change_combine = data_family_change[,1] - data_family_change[,2]
+  data_family_change_combine = data.frame(data_family_change_combine)
+  colnames(data_family_change_combine) = "family_change"
+  data = cbind(data,data_family_change_combine)
+  #删除 class,class_10_before，class_10_after，class_14
+  data = subset(data,select = -c(class,class_14,class_10_after,class_10_before))
+  dim(data)
+  colnames(data)
+
+  #合并 status_peer 以及 status_3_before
+  feature_effort = c("status_3_before","status_peer")
+  data_effort = data[,feature_effort]
+  data_effort_combine = data_effort[,1] - data_effort[,2]
+  data_effort_combine = data.frame(data_effort_combine)
+  colnames(data_effort_combine) = "effort"
+  data = cbind(data,data_effort_combine)
+  #删除 class,class_10_before，class_10_after，class_14
+  data = subset(data,select = -c(status_3_before,status_peer))
+  
+  #以下合并insurance
+  
+  feature_insur = c("insur_1","insur_2","insur_3","insur_4")
+  data_insur = data[,feature_insur]
+  data_insur_combine = ceiling(data.frame(apply(data_insur,1,mean)))
+  data_insur_combine = data.frame(data_insur_combine)
+  colnames(data_insur_combine) = "insurance"
+  data = cbind(data,data_insur_combine)
+  data = data[,-which(names(data) %in% feature_insur )]
+
+  
+  # #以下对父亲母亲的情况进行处理
+  # #首先将父母的生日转化为年龄
+  # feature_f_age = c("f_birth")
+  # data_f_age = data[,feature_f_age]
+  # data_f_age = 2015 - data_f_age
+  # data_f_age = data.frame(data_f_age)
+  # colnames(data_f_age) = "f_age"
+  # data = cbind(data,data_f_age)
+  # data = data[,-which(names(data) %in% feature_f_age )]
+  # #母亲生日 --> 年龄
+  # feature_m_age = c("m_birth")
+  # data_m_age = data[,feature_m_age]
+  # data_m_age = 2015 - data_m_age
+  # data_m_age = data.frame(data_m_age)
+  # colnames(data_m_age) = "m_age"
+  # data = cbind(data,data_m_age)
+  # data = data[,-which(names(data) %in% feature_m_age )]
+  # #得到一个新 feature --> 父母年龄差 f_m_differ
+  # data_f_m_differ = data.frame(abs(data_m_age - data_f_age ))
+  # colnames(data_f_m_differ) = "f_m_age_differ"
+  # data = data.frame(cbind(data,data_f_m_differ))
+  # 
+  # for( i in 1:nrow(data)){
+  #   if(data[i,"f_m_age_differ"]>90){
+  #     data[i,"f_m_age_differ"] = abs(100-data[i,"f_m_age_differ"])
+  #   }
+  # }
+  # 
+  #获取新 feature --> 父母平均教育edu
+  feature_f_m_edu = c("f_edu","m_edu")
+  data_f_m_edu = data[,feature_f_m_edu]
+  data_f_m_edu = data.frame(round(data.frame(apply(data_f_m_edu,1,mean))))
+  colnames(data_f_m_edu) = "f_m_edu"
+  data = cbind(data,data_f_m_edu)
+  data = data[,-which(names(data) %in% feature_f_m_edu )]
+  
+  return(data.frame(data))
 }
 
 getTest_id <- function(){

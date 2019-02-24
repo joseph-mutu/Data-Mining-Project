@@ -156,9 +156,10 @@ testData_province_SVM <- function(train_data,test_data,test_id){
   data_S = train_data[train_data$province %in% S,]
   
   type_reg ="nu-regression"
-  SVM_model_NW = svm(happiness ~., data = data_NW,type = type_reg,kernel ="radial") 
-  SVM_model_N = svm(happiness ~., data = data_N,type = type_reg,kernel ="radial") 
-  SVM_model_S = svm(happiness ~., data = data_S,type = type_reg,kernel ="radial") 
+  type_reg2 = "eps-regression"
+  SVM_model_NW = svm(happiness ~., data = data_NW,type = type_reg2,kernel ="radial") 
+  SVM_model_N = svm(happiness ~., data = data_N,type = type_reg2,kernel ="radial") 
+  SVM_model_S = svm(happiness ~., data = data_S,type = type_reg2,kernel ="radial") 
   
   
   index = which(test_data[,"province"] %in% NW)
@@ -193,4 +194,20 @@ testData_province_SVM <- function(train_data,test_data,test_id){
   dim(test_data)
   SVM_result_sort = SVM_result_need_sort[order(SVM_result_need_sort$id),]
   return(data.frame(SVM_result_sort[,"result"]))
+}
+
+
+test_Linear_Train_test <- function(data){
+  index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
+  train_data = data.frame(data[index==1,])
+  train_label = data.frame(data[index==1,"happiness"])
+  test_data = data.frame(data[index==2,])
+  test_data = subset(test_data,select = -c(happiness))
+  test_label = data.frame(data[index==2,1])
+  test_id = data.frame(data_id[index==2,1])
+  
+  Model_linear = lm(formula = happiness ~.,data = train_data )
+  lm_test_result = predict(Model_linear,test_data)
+  score = result_compare(data.frame(lm_test_result),test_label)
+  return(score)
 }
