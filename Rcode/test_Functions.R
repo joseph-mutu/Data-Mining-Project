@@ -94,17 +94,19 @@ testData_province_lm <- function(train_data,test_data,test_id){
   test_data = data.frame(test_data)
   test_id = data.frame(test_id)
   
-  #将数据按照地理分为 3 个部分，分别为西北，北部，以及南方
-  NW = c(23,30,8,3)
-  N = c(4,5,7,10,11,17,18,27,29,31)
-  S = c(1,2,6,9,12,13,15,16,19,24,26,28,21,22)
+  #将数据按照地理分为 3 个部分，分别为西部，中部，以及南方
+  #注意 NW 代表西部 N 代表中部 S 代表南方
+  
+  NW = c(2,6,8,23,25,26,30,28,29,14)
+  N = c(5,9,11,16,18,21,22,31)
+  S = c(1,3,4,7,10,12,13,15,17,19,20,24,27)
   data_NW = train_data[train_data$province %in% NW,]
   data_N = train_data[train_data$province %in% N,]
   data_S = train_data[train_data$province %in% S,]
   
-  lm_model_NW = lm(formula = happiness ~. ,data = train_data)
-  lm_model_N = lm(formula = happiness ~. ,data = train_data)
-  lm_model_S = lm(formula = happiness ~. ,data = train_data)
+  lm_model_NW = lm(formula = happiness ~. ,data = data_NW)
+  lm_model_N = lm(formula = happiness ~. ,data = data_N)
+  lm_model_S = lm(formula = happiness ~. ,data = data_S)
   
   
   index = which(test_data[,"province"] %in% NW)
@@ -148,9 +150,9 @@ testData_province_SVM <- function(train_data,test_data,test_id){
   test_id = data.frame(test_id)
   
   #将数据按照地理分为 3 个部分，分别为西北，北部，以及南方
-  NW = c(23,30,8,3)
-  N = c(4,5,7,10,11,17,18,27,29,31)
-  S = c(1,2,6,9,12,13,15,16,19,24,26,28,21,22)
+  NW = c(2,6,8,23,25,26,30,28,29,14)
+  N = c(5,9,11,16,18,21,22,31)
+  S = c(1,3,4,7,10,12,13,15,17,19,20,24,27)
   data_NW = train_data[train_data$province %in% NW,]
   data_N = train_data[train_data$province %in% N,]
   data_S = train_data[train_data$province %in% S,]

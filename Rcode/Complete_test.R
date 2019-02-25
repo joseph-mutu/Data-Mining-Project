@@ -15,14 +15,11 @@ library(rpart)
 library(neuralnet)
 
 
-
-
 s = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
 data = Outlier_delete(s)
 data_id = data.frame(data[,"id"])
 data = Interpolate_ALL(data)
 col_names_for_test = get_Col_names_For_test(data)
-
 data = Combine_All_features(data)
 
 dim(data)
@@ -30,59 +27,12 @@ dim(data)
 tem_store = data
 colnames(data)
 
-
-data = subset(data,select = -c(survey_type,province,nationality,edu,income,
-                               political,floor_area,health_problem,hukou,
-                               hukou_loc,leisure_12,socialize,learn,socia_outing,
-                               work_exper,family_income,son,f_political,f_work_14,
-                               m_birth,m_political,inc_exp,invest,inc_income,trust_familar,
-                               property_own,property_other,media_old,media_new,insurance,effort,f_birth,
-                               religion_freq,house,marital))
-#以下进行归一化
-
-data_label = data.frame(data[,"happiness"])
-colnames(data_label) = "happiness"
-data = subset(data,select = -c(happiness))
-
-data = scale(data,center = T,scale = T)
-
-
-maxs <- apply(data, 2, max) 
-mins <- apply(data, 2, min)
-data <- as.data.frame(scale(data, center = mins, scale = maxs - mins))
-
-
-# data = scale(data,center=T,scale=T)
-data = data.frame(cbind(data_label,data))
-# data = data.frame(cbind(data,data_province))
-# Model_linear = lm(formula = happiness ~.,data = data )
-# summary(Model_linear)
-
-
-
-
-
-#以下测试神经网络的性能
-
-index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
-train_data = data.frame(data[index==1,])
-train_label = data.frame(data[index==1,"happiness"])
-test_data = data.frame(data[index==2,])
-test_data = subset(test_data,select = -c(happiness))
-test_label = data.frame(data[index==2,1])
-test_id = data.frame(data_id[index==2,1])
-
-
-
-
-
-
-
-data_centra = data
+colnames(data)
+data = Province_centra_scale(data)
+# data = central_scale(data)
 
 avg_score = 0.0
-
-for ( i in 1:200){
+for ( i in 1:100){
   #抽样train和test
   index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
   train_data = data.frame(data[index==1,])
@@ -97,13 +47,15 @@ for ( i in 1:200){
   # result_test = testData_province_SVM(train_data,test_data,test_id)
   # score = result_compare(data.frame(result_test),test_label)
   
-  #Porvince_lm
+  # #Porvince_lm
   # result_test = testData_province_lm(train_data,test_data,test_id)
+  # result_test = round(result_test)
   # score = result_compare(data.frame(result_test),test_label)
   
   #Lm model
   Model_linear = lm(formula = happiness ~.,data = train_data )
   lm_test_result = predict(Model_linear,test_data)
+  lm_test_result = round(lm_test_result)
   score = result_compare(data.frame(lm_test_result),test_label)
   # score
   # print(i)
@@ -117,9 +69,14 @@ for ( i in 1:200){
   avg_score = avg_score + score
   
 }
-summary(Model_linear)
-avg_score/200
+# summary(Model_linear)
+avg_score/100
 data[,"inc_ability"]
+
+
+
+
+
 
 #SVM
 type_reg = "eps-regression"
@@ -129,27 +86,14 @@ SVM_test_result_1 = predict(model_SVM_1,test_data)
 SVM_test_result_1 = round(SVM_test_result_1)
 score = result_compare(data.frame(SVM_test_result_1),test_label)
 
-
-reg = rpart(happiness~.,data)
-
-
 #lm模型
 Model_linear = lm(formula = happiness ~.,data = data )
+summary(Model_linear)
+
 lm_test_result = predict(Model_linear,test_data)
 lm_test_result = round(lm_test_result)
 score = result_compare(data.frame(lm_test_result),test_label)
 score 
-
-
-
-
-colnames(data)
-data = subset(data,select = -c(f_birth,f_work_14,m_birth,
-                               m_work_14))
-dim(data)
-colnames(data)
-model_SVM = svm(happiness ~., data = data,type = type_reg,kernel ="radial") 
-
 
 
 

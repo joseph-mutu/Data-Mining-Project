@@ -120,55 +120,12 @@ getCol_names_From_new_data_col_names <- function(dataset){
 }
 
 interpolate <- function(data,need_inter_col){
-  inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
-  
-  for (i in 1:length(need_inter_col)){
-    tem_index = !is.na(data[,need_inter_col[i]])
-    tem_data = data[tem_index,need_inter_col[i]]
-    inter_col_mean_matrix[1,i] = mean(tem_data)
-    
-  }
-  for (i in 1:length(need_inter_col)){
-    #找出在 need_inter_col 列表中为 NA 的值，然后根据其幸福度指数以相应的值插值
-    tem_need_inter_position = which(data[,need_inter_col[i]] %in% NA)
-    num_need_inter = length(tem_need_inter_position)
-    if(num_need_inter > 0 ){
-      for (j in 1:num_need_inter){
-        data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[1,i]
-      }
-    }
-  }
-  return(data)
-  # happiness_1 = data[data$happiness==1,]
-  # happiness_2 = data[data$happiness==2,]
-  # happiness_3 = data[data$happiness==3,]
-  # happiness_4 = data[data$happiness==4,]
-  # happiness_5 = data[data$happiness==5,]
-  # 
-  # # need_inter_col = 	c("hukou","social_neighbor","social_friend","family_income","minor_child")
-  # 
   # inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
   # 
   # for (i in 1:length(need_inter_col)){
-  #   tem_index_happiness_1 = !is.na(happiness_1[,need_inter_col[i]])
-  #   tem_data_happiness_1 = happiness_1[tem_index_happiness_1,need_inter_col[i]]
-  #   inter_col_mean_matrix[1,i] = mean(tem_data_happiness_1)
-  #   
-  #   tem_index_happiness_2 = !is.na(happiness_2[,need_inter_col[i]])
-  #   tem_data_happiness_2 = happiness_2[tem_index_happiness_2,need_inter_col[i]]
-  #   inter_col_mean_matrix[2,i] = mean(tem_data_happiness_2)
-  #   
-  #   tem_index_happiness_3 = !is.na(happiness_3[,need_inter_col[i]])
-  #   tem_data_happiness_3 = happiness_3[tem_index_happiness_3,need_inter_col[i]]
-  #   inter_col_mean_matrix[3,i] = mean(tem_data_happiness_3)
-  #   
-  #   tem_index_happiness_4 = !is.na(happiness_4[,need_inter_col[i]])
-  #   tem_data_happiness_4 = happiness_4[tem_index_happiness_4,need_inter_col[i]]
-  #   inter_col_mean_matrix[4,i] = mean(tem_data_happiness_4)
-  #   
-  #   tem_index_happiness_5 = !is.na(happiness_5[,need_inter_col[i]])
-  #   tem_data_happiness_5 = happiness_5[tem_index_happiness_5,need_inter_col[i]]
-  #   inter_col_mean_matrix[5,i] = mean(tem_data_happiness_5)
+  #   tem_index = !is.na(data[,need_inter_col[i]])
+  #   tem_data = data[tem_index,need_inter_col[i]]
+  #   inter_col_mean_matrix[1,i] = mean(tem_data)
   #   
   # }
   # for (i in 1:length(need_inter_col)){
@@ -177,84 +134,138 @@ interpolate <- function(data,need_inter_col){
   #   num_need_inter = length(tem_need_inter_position)
   #   if(num_need_inter > 0 ){
   #     for (j in 1:num_need_inter){
-  #       tem_happiness_index = data[tem_need_inter_position[j],"happiness"]
-  #       data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[tem_happiness_index,i]
+  #       data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[1,i]
   #     }
   #   }
   # }
   # return(data)
-}
+  
+  #以上是以平均值进行插值
+  
+  #以下是在训练数据中以幸福度指数进行插值
+  
+  
+  happiness_1 = data[data$happiness==1,]
+  happiness_2 = data[data$happiness==2,]
+  happiness_3 = data[data$happiness==3,]
+  happiness_4 = data[data$happiness==4,]
+  happiness_5 = data[data$happiness==5,]
 
-interpolate_outlier_round <- function(data,need_inter_col){
-  
+  # need_inter_col = 	c("hukou","social_neighbor","social_friend","family_income","minor_child")
+
   inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
-  
+
   for (i in 1:length(need_inter_col)){
-    tem_index = which(data[,need_inter_col[i]] >= 0)
-    tem_data = data[tem_index,need_inter_col[i]]
-    inter_col_mean_matrix[1,i] = round(mean(tem_data))
+    tem_index_happiness_1 = !is.na(happiness_1[,need_inter_col[i]])
+    tem_data_happiness_1 = happiness_1[tem_index_happiness_1,need_inter_col[i]]
+    inter_col_mean_matrix[1,i] = mean(tem_data_happiness_1)
+
+    tem_index_happiness_2 = !is.na(happiness_2[,need_inter_col[i]])
+    tem_data_happiness_2 = happiness_2[tem_index_happiness_2,need_inter_col[i]]
+    inter_col_mean_matrix[2,i] = mean(tem_data_happiness_2)
+
+    tem_index_happiness_3 = !is.na(happiness_3[,need_inter_col[i]])
+    tem_data_happiness_3 = happiness_3[tem_index_happiness_3,need_inter_col[i]]
+    inter_col_mean_matrix[3,i] = mean(tem_data_happiness_3)
+
+    tem_index_happiness_4 = !is.na(happiness_4[,need_inter_col[i]])
+    tem_data_happiness_4 = happiness_4[tem_index_happiness_4,need_inter_col[i]]
+    inter_col_mean_matrix[4,i] = mean(tem_data_happiness_4)
+
+    tem_index_happiness_5 = !is.na(happiness_5[,need_inter_col[i]])
+    tem_data_happiness_5 = happiness_5[tem_index_happiness_5,need_inter_col[i]]
+    inter_col_mean_matrix[5,i] = mean(tem_data_happiness_5)
+
   }
-  
   for (i in 1:length(need_inter_col)){
-    #找出在 need_inter_col 列表中小于 0 的值，以平均值插值
-    tem_need_inter_position = which(data[,need_inter_col[i]] < 0)
+    #找出在 need_inter_col 列表中为 NA 的值，然后根据其幸福度指数以相应的值插值
+    tem_need_inter_position = which(data[,need_inter_col[i]] %in% NA)
     num_need_inter = length(tem_need_inter_position)
     if(num_need_inter > 0 ){
       for (j in 1:num_need_inter){
-        data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[1,i]
+        tem_happiness_index = data[tem_need_inter_position[j],"happiness"]
+        data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[tem_happiness_index,i]
       }
     }
   }
   return(data)
+}
+
+interpolate_outlier_round <- function(data,need_inter_col){
   
-  
-  # happiness_1 = data[data$happiness==1,]
-  # happiness_2 = data[data$happiness==2,]
-  # happiness_3 = data[data$happiness==3,]
-  # happiness_4 = data[data$happiness==4,]
-  # happiness_5 = data[data$happiness==5,]
-  # 
-  # 
-  # # need_inter_col = 	c("hukou","social_neighbor","social_friend","family_income","minor_child")
-  # 
   # inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
   # 
   # for (i in 1:length(need_inter_col)){
-  # 
-  #   tem_index_happiness_1 = which(happiness_1[,need_inter_col[i]] >= 0)
-  #   tem_data_happiness_1 = happiness_1[tem_index_happiness_1,need_inter_col[i]]
-  #   inter_col_mean_matrix[1,i] = round(mean(tem_data_happiness_1))
-  #   
-  #   tem_index_happiness_2 = which(happiness_2[,need_inter_col[i]] >= 0)
-  #   tem_data_happiness_2 = happiness_2[tem_index_happiness_2,need_inter_col[i]]
-  #   inter_col_mean_matrix[2,i] = round(mean(tem_data_happiness_2))
-  #   
-  #   tem_index_happiness_3 = which(happiness_3[,need_inter_col[i]] >= 0)
-  #   tem_data_happiness_3 = happiness_3[tem_index_happiness_3,need_inter_col[i]]
-  #   inter_col_mean_matrix[3,i] = round(mean(tem_data_happiness_3))
-  #   
-  #   tem_index_happiness_4 = which(happiness_4[,need_inter_col[i]] >= 0)
-  #   tem_data_happiness_4 = happiness_4[tem_index_happiness_4,need_inter_col[i]]
-  #   inter_col_mean_matrix[4,i] = round(mean(tem_data_happiness_4))
-  #   
-  #   tem_index_happiness_5 = which(happiness_5[,need_inter_col[i]] >= 0)
-  #   tem_data_happiness_5 = happiness_5[tem_index_happiness_5,need_inter_col[i]]
-  #   inter_col_mean_matrix[5,i] = round(mean(tem_data_happiness_5))
-  #   
+  #   tem_index = which(data[,need_inter_col[i]] >= 0)
+  #   tem_data = data[tem_index,need_inter_col[i]]
+  #   inter_col_mean_matrix[1,i] = round(mean(tem_data))
   # }
   # 
   # for (i in 1:length(need_inter_col)){
-  #   #找出在 need_inter_col 列表中为 NA 的值，然后根据其幸福度指数,以相应的值插值
+  #   #找出在 need_inter_col 列表中小于 0 的值，以平均值插值
   #   tem_need_inter_position = which(data[,need_inter_col[i]] < 0)
   #   num_need_inter = length(tem_need_inter_position)
   #   if(num_need_inter > 0 ){
   #     for (j in 1:num_need_inter){
-  #       tem_happiness_index = data[tem_need_inter_position[j],"happiness"]
-  #       data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[tem_happiness_index,i]
+  #       data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[1,i]
   #     }
   #   }
   # }
   # return(data)
+  
+  #以上是以平均值进行插值
+  
+  #以下是以幸福度指数进行插值
+  
+  
+  
+  happiness_1 = data[data$happiness==1,]
+  happiness_2 = data[data$happiness==2,]
+  happiness_3 = data[data$happiness==3,]
+  happiness_4 = data[data$happiness==4,]
+  happiness_5 = data[data$happiness==5,]
+
+
+  # need_inter_col = 	c("hukou","social_neighbor","social_friend","family_income","minor_child")
+
+  inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
+
+  for (i in 1:length(need_inter_col)){
+
+    tem_index_happiness_1 = which(happiness_1[,need_inter_col[i]] >= 0)
+    tem_data_happiness_1 = happiness_1[tem_index_happiness_1,need_inter_col[i]]
+    inter_col_mean_matrix[1,i] = round(mean(tem_data_happiness_1))
+
+    tem_index_happiness_2 = which(happiness_2[,need_inter_col[i]] >= 0)
+    tem_data_happiness_2 = happiness_2[tem_index_happiness_2,need_inter_col[i]]
+    inter_col_mean_matrix[2,i] = round(mean(tem_data_happiness_2))
+
+    tem_index_happiness_3 = which(happiness_3[,need_inter_col[i]] >= 0)
+    tem_data_happiness_3 = happiness_3[tem_index_happiness_3,need_inter_col[i]]
+    inter_col_mean_matrix[3,i] = round(mean(tem_data_happiness_3))
+
+    tem_index_happiness_4 = which(happiness_4[,need_inter_col[i]] >= 0)
+    tem_data_happiness_4 = happiness_4[tem_index_happiness_4,need_inter_col[i]]
+    inter_col_mean_matrix[4,i] = round(mean(tem_data_happiness_4))
+
+    tem_index_happiness_5 = which(happiness_5[,need_inter_col[i]] >= 0)
+    tem_data_happiness_5 = happiness_5[tem_index_happiness_5,need_inter_col[i]]
+    inter_col_mean_matrix[5,i] = round(mean(tem_data_happiness_5))
+
+  }
+
+  for (i in 1:length(need_inter_col)){
+    #找出在 need_inter_col 列表中为 NA 的值，然后根据其幸福度指数,以相应的值插值
+    tem_need_inter_position = which(data[,need_inter_col[i]] < 0)
+    num_need_inter = length(tem_need_inter_position)
+    if(num_need_inter > 0 ){
+      for (j in 1:num_need_inter){
+        tem_happiness_index = data[tem_need_inter_position[j],"happiness"]
+        data[tem_need_inter_position[j],need_inter_col[i]] = inter_col_mean_matrix[tem_happiness_index,i]
+      }
+    }
+  }
+  return(data)
 }
 
 
@@ -510,11 +521,38 @@ get_Col_names_For_test <- function(data){
   return(col_names_for_test)
 }
 central_scale <- function(data){
-  #以下进行归一化
+  #以下进行所有特征的归一化
   data_label = data.frame(data[,"happiness"])
   colnames(data_label) = "happiness"
   data = subset(data,select = -c(happiness))
   data = scale(data,center=T,scale=T)
   data = data.frame(cbind(data_label,data))
+  return(data)
+}
+Province_centra_scale <- function(data){
+  
+  #以下进行提取省市的归一化
+  
+  data_label = data.frame(data[,"happiness"])
+  colnames(data_label) = "happiness"
+  data = subset(data,select = -c(happiness))
+  data_province = data.frame(data[,"province"])
+  colnames(data_province) = "province"
+  data = subset(data,select = -c(province))
+  
+  data = scale(data,center = T,scale = T)
+  data = data.frame(cbind(data_label,data))
+  data = data.frame(cbind(data,data_province))
+  return(data)
+}
+
+delete_features_for_linear <- function(data){
+  data = subset(data,select = -c(survey_type,province,nationality,edu,income,
+                                 political,floor_area,health_problem,hukou,
+                                 hukou_loc,leisure_12,socialize,learn,socia_outing,
+                                 work_exper,family_income,son,f_political,f_work_14,
+                                 m_birth,m_political,inc_exp,invest,inc_income,trust_familar,
+                                 property_own,property_other,media_old,media_new,insurance,effort,f_birth,
+                                 religion_freq,house,marital))
   return(data)
 }
