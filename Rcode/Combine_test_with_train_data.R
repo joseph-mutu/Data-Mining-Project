@@ -14,6 +14,8 @@ library(randomForest)
 require(Hmisc)
 require(caret)
 library(neuralnet)
+library(xgboost)
+
 
 
 n_Cores <- detectCores()##检测你的电脑的CPU核数
@@ -22,14 +24,19 @@ registerDoParallel(cluster_Set)
 
 #=======================================将train_data与test结合在一起进行处理，然后进行分离================
 traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
-testdata = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
-traindata = Outlier_delete(traindata)
 traindata_id = traindata[,"id"]
-traindata_happiness = traindata[,"happiness"]
-traindata = subset(traindata,select = -c(happiness))
-complete_data = data.frame(rbind(traindata,testdata))
-#testdata 从 7969 开始 到 10956 结束
-complete_data = Bag_inter(complete_data)
+
+# testdata = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
+# traindata = Outlier_delete(traindata)
+# traindata_happiness = traindata[,"happiness"]
+# traindata = subset(traindata,select = -c(happiness))
+# complete_data = data.frame(rbind(traindata,testdata))
+# #testdata 从 7969 开始 到 10956 结束
+# complete_data = Bag_inter(complete_data)
+
+
+complete_Data = Get_complete_data_carpet()
+dim(complete_data)
 cor_complete = cor(complete_data)
 corrplot(cor_complete,method="color",tl.pos = 'n')
 #=============================使用 prepossess 函数进行降维=================================
@@ -67,7 +74,7 @@ dim(train_data)
 dim(test_data)
 Model_linear = lm(formula = happiness ~.,data = train_data )
 
-
+complete_data = get
 cor_society = cor(train_data)
 corrplot(cor_society,method="number",tl.pos = 'n')
 
@@ -83,7 +90,12 @@ n <- names(train_data)
 f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
 nn <- neuralnet(f,data=train_data,hidden=c(10,5),linear.output=T)
 #==========================================================================
-
+#XGBoost
+xgb1 <- xgboost(data = as.matrix(train1[,-c('trees')]),
+                label = train1$trees,
+                objective='reg:linear',nrounds=300)
+pre6 = predict(xgb1,as.matrix(test1[,-c('trees')]))
+#==========================================================================
 
 
 

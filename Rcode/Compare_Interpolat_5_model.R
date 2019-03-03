@@ -21,6 +21,7 @@ library(ipred)
 library(randomForest)  
 require(Hmisc)
 require(caret)
+library(xgboost)
 n_Cores <- detectCores()##检测你的电脑的CPU核数
 cluster_Set <- makeCluster(n_Cores)##进行集群
 registerDoParallel(cluster_Set)
@@ -57,6 +58,10 @@ col_names_for_test = get_Col_names_For_test(data_bag)
 
 
 
+complete_data = Get_complete_data_carpet()
+traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+traindata = Outlier_delete(traindata)
+traindata_happiness = traindata[,"happiness"]
 #================================使用 preProces 函数进行降维处理=========================
 Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
 complete_data_pca = predict(Process_data_pca,complete_data)
@@ -65,6 +70,22 @@ complete_data_pca = predict(Process_data_pca,complete_data)
 data_bag = Combine_All_features(data_bag)
 data_bag = central_scale(data_bag)
 data_bag = delete_features_for_linear(data_bag)
+
+#======================将 test_data 与 train_data 分离，并对 train_data 进行采取 train_data 以及 test_data
+train_data = complete_data_pca[1:7988,]
+train_data = data.frame(cbind(traindata_happiness,train_data))
+colnames(train_data)[1] = "happiness"
+colnames(train_data)
+test_data = complete_data_pca[7989:10956,]
+
+index = sample(2,nrow(train_data),replace = T,prob = c(0.8,0.2))
+train_data_train = data.frame(train_data[index==1,])
+train_data_test = data.frame(train_data[index==2,])
+train_data_test = subset(train_data_test,select = -c(happiness))
+train_data_test_label = data.frame(train_data[index==2,1])
+
+
+
 
 
 
@@ -81,9 +102,9 @@ model_SVM = svm(happiness ~., data = data_bag,type = type_reg2,kernel ="radial",
 Model_linear = lm(formula = happiness ~.,data = data_bag )
 #===================================
 #随机森林
-reg_RF = randomForest(happiness~.,data=train_data,importance=TRUE,ntree=1000)  
-pred<-predict(reg_RF,newdata=test_data)  
-score = result_compare(data.frame(pred),test_label)
+reg_RF = randomForest(happiness~.,data=train_data_train,importance=TRUE,proximity = TRUE,ntree=500)  
+pred<-predict(reg_RF,newdata=train_data_test)  
+score = result_compare(data.frame(pred),train_data_test_label)
 #===================================
 #Bagging
 reg_boost =bagging(happiness~.,data=data,coob=TRUE,control=rpart.control(cp=0.025))  
@@ -96,13 +117,27 @@ n <- names(train_data)
 f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
 nn <- neuralnet(f,data=train_data,hidden=c(10,5),linear.output=T)
 #===================================================================================
+#XGBoost
+xgb <- xgboost(data = as.matrix(train_data_train),
+                label = train_data_train$happiness,
+                objective='count:poisson',nrounds=1000)
+pre6 = data.frame(predict(xgb,as.matrix(train_data_test)))
+score = result_compare(pre6,train_data_test_label)
+score
+#===================================================================================
+#glm
+glm1 = glm(happiness~.,data = train_data_train,
+            family = gaussian(link = 'identity'))
+summary(glm1)
+pre1 = predict(glm1,train_data_test)
+score = result_compare(data.frame(pre1),train_data_test_label)
+score
+
+
+#================================获取测试数据集并写入数据================================================
 
 
 
-
-#================================获取测试数据集================================================
-test_set = getTestdata(col_names_for_test)
-test_set = scale(test_set,center = T,scale = T)
 SVM_test_result_1 = predict(model_SVM,test_set)
 writeResult(SVM_test_result_1)
 new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")

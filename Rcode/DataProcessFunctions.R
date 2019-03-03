@@ -564,3 +564,9 @@ Outlier_num <- function(data){
     }
   }
 }
+
+Get_complete_data_carpet <- function(){
+  traindata = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/complete_carpet.csv")
+  return(traindata)
+  
+}
