@@ -75,8 +75,6 @@ type_reg = "eps-regression"
 type_reg2 = "nu-regression"
 tuned <- tune.svm(happiness ~ .,type = type_reg2,kernel ="radial",data = data_bag,gamma = 10^(-6:-1),cost = 10^(1:2))
 summary(tuned)
-
-
 model_SVM = svm(happiness ~., data = data_bag,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
 #===================================
 #lm 函数
@@ -87,7 +85,6 @@ reg_RF = randomForest(happiness~.,data=train_data,importance=TRUE,ntree=1000)
 pred<-predict(reg_RF,newdata=test_data)  
 score = result_compare(data.frame(pred),test_label)
 #===================================
-
 #Bagging
 reg_boost =bagging(happiness~.,data=data,coob=TRUE,control=rpart.control(cp=0.025))  
 test_set = data.frame(scale(test_set,center=T,scale=T))

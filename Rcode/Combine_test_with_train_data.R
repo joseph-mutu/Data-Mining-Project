@@ -13,6 +13,7 @@ library(ipred)
 library(randomForest)  
 require(Hmisc)
 require(caret)
+library(neuralnet)
 
 
 n_Cores <- detectCores()##检测你的电脑的CPU核数
@@ -29,6 +30,8 @@ traindata = subset(traindata,select = -c(happiness))
 complete_data = data.frame(rbind(traindata,testdata))
 #testdata 从 7969 开始 到 10956 结束
 complete_data = Bag_inter(complete_data)
+cor_complete = cor(complete_data)
+corrplot(cor_complete,method="color",tl.pos = 'n')
 #=============================使用 prepossess 函数进行降维=================================
 Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
 complete_data_pca = predict(Process_data_pca,complete_data)
@@ -36,25 +39,33 @@ cor_pca = cor(complete_data_pca)
 corrplot(cor_pca,method="color",tl.pos = 'n')
 #================================使用自己写的函数进行特征合并=========================================================
 complete_data_combine_feature = Combine_All_features(complete_data)
-str(complete_data)
+cor_complete_combine = cor(complete_data_combine_feature)
+corrplot(cor_complete_combine,method="color",tl.pos = 'n')
+
+Process_data_pca_combine  = preProcess(complete_data_combine_feature,method=c("scale","center","pca"))
+complete_data_pca_combine = predict(Process_data_pca_combine,complete_data_combine_feature)
+cor_complete_combine = cor(complete_data_pca_combine)
+corrplot(cor_complete_combine,method="color",tl.pos = 'n')
+# str(complete_data)
+complete_data_feature = complete_data_pca_combine
 
 #根据 lm 线性回归的重要性对特征进行删减
 complete_data = delete_features_for_linear(complete_data)
 cor_combine_feature = cor(complete_data_combine_feature)
 corrplot(cor_combine_feature,method="color",tl.pos = 'n')
 
-
+dim(complete_data_pca)
 
 
 #================================将train_data与test_data进行分裂============================
-train_data = complete_data_pca[1:7988,]
+train_data = complete_data_pca_combine[1:7988,]
 train_data = data.frame(cbind(traindata_happiness,train_data))
 colnames(train_data)[1] = "happiness"
 colnames(train_data)
-test_data = complete_data_pca[7989:10956,]
+test_data = complete_data_pca_combine[7989:10956,]
 dim(train_data)
 dim(test_data)
-
+Model_linear = lm(formula = happiness ~.,data = train_data )
 
 
 cor_society = cor(train_data)
@@ -67,7 +78,12 @@ tuned <- tune.svm(happiness ~ .,type = type_reg2,kernel ="radial",data = train_d
 summary(tuned)
 model_SVM = svm(happiness ~., data = train_data,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
 
-#==================================================================神经网络
+#==神经网络================================================================
+n <- names(train_data)
+f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
+nn <- neuralnet(f,data=train_data,hidden=c(10,5),linear.output=T)
+#==========================================================================
+
 
 
 
