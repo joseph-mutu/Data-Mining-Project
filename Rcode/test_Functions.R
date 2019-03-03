@@ -16,7 +16,7 @@ testData_KNN <- function(traindata,testdata){
 }
 
 testData_PCA_Linear <- function(new_data_col_names){
-
+  
   new_data = as.data.frame(new_data_col_names[1])
   col_names = as.vector(unlist(new_data_col_names[2]))
   train_test_label = new_data[,1]
@@ -29,15 +29,15 @@ testData_PCA_Linear <- function(new_data_col_names){
   train_test_data = rbind(train_data,test_data)
   dim(train_test_data)
   
-  #½«testÊý¾Ý¼¯ÓëtrainÊý¾Ý¼¯½áºÏÔÚÒ»Æð£¬ËÍÈë PCA º¯Êý£¬½øÐÐ¹éÒ»»¯²¢½µÎ¬
-  #½µÎ¬Íê³ÉÖ®ºó£¬½« trainÒÔ¼° test ²ð·Ö£¬ÒÔ train ½øÐÐ»Ø¹é
+  #å°†testæ•°æ®é›†ä¸Žtrainæ•°æ®é›†ç»“åˆåœ¨ä¸€èµ·ï¼Œé€å…¥ PCA å‡½æ•°ï¼Œè¿›è¡Œå½’ä¸€åŒ–å¹¶é™ç»´
+  #é™ç»´å®Œæˆä¹‹åŽï¼Œå°† trainä»¥åŠ test æ‹†åˆ†ï¼Œä»¥ train è¿›è¡Œå›žå½’
   train.pca = PCA(train_test_data,scale.unit = TRUE, graph = FALSE)
   eig.ind = get_pca_ind(train.pca)
   train_pca_data = as.data.frame(eig.ind$coord)
   train_data = train_pca_data[1:dim(train_data)[1],]
   test_data = train_pca_data[dim(train_data)[1]+1:dim(test_data)[1],]
   
-  #½«trainµÄÐÒ¸£¶ÈÖ¸ÊýÓë¹éÒ»»¯ºóµÄ train_data ½áºÏ£¬ËÍÈë lm º¯Êý½øÐÐ»Ø¹é
+  #å°†trainçš„å¹¸ç¦åº¦æŒ‡æ•°ä¸Žå½’ä¸€åŒ–åŽçš„ train_data ç»“åˆï¼Œé€å…¥ lm å‡½æ•°è¿›è¡Œå›žå½’
   train_label = unlist(train_test_label)
   train_data$happiness = train_label
   train_data = as.data.frame(train_data)
@@ -48,7 +48,7 @@ testData_PCA_Linear <- function(new_data_col_names){
   Model_linear = lm(formula = happiness ~. +Dim.1:Dim.5,
                     data = train_data )
   
-  #¶Ô test Êý¾Ý½øÐÐÍ¬ÑùµÄ PCA ´¦Àí
+  #å¯¹ test æ•°æ®è¿›è¡ŒåŒæ ·çš„ PCA å¤„ç†
   
   result = predict(Model_linear, newdata = test_data)
   result = data.frame(result)
@@ -56,7 +56,7 @@ testData_PCA_Linear <- function(new_data_col_names){
 }
 
 testData_SVM <- function(data){
-  #³éÑùtrainºÍtest
+  #æŠ½æ ·trainå’Œtest
   index = sample(2,nrow(data),replace = T,prob = c(0.7,0.3))
   train_data = data[index==1,]
   test_data = data[index==2,]
@@ -94,8 +94,8 @@ testData_province_lm <- function(train_data,test_data,test_id){
   test_data = data.frame(test_data)
   test_id = data.frame(test_id)
   
-  #½«Êý¾Ý°´ÕÕµØÀí·ÖÎª 3 ¸ö²¿·Ö£¬·Ö±ðÎªÎ÷²¿£¬ÖÐ²¿£¬ÒÔ¼°ÄÏ·½
-  #×¢Òâ NW ´ú±íÎ÷²¿ N ´ú±íÖÐ²¿ S ´ú±íÄÏ·½
+  #å°†æ•°æ®æŒ‰ç…§åœ°ç†åˆ†ä¸º 3 ä¸ªéƒ¨åˆ†ï¼Œåˆ†åˆ«ä¸ºè¥¿éƒ¨ï¼Œä¸­éƒ¨ï¼Œä»¥åŠå—æ–¹
+  #æ³¨æ„ NW ä»£è¡¨è¥¿éƒ¨ N ä»£è¡¨ä¸­éƒ¨ S ä»£è¡¨å—æ–¹
   
   NW = c(2,6,8,23,25,26,30,28,29,14)
   N = c(5,9,11,16,18,21,22,31)
@@ -149,8 +149,7 @@ testData_province_SVM <- function(train_data,test_data,test_id){
   test_data = data.frame(test_data)
   test_id = data.frame(test_id)
   
-  #½«Êý¾Ý°´ÕÕµØÀí·ÖÎª 3 ¸ö²¿·Ö£¬·Ö±ðÎªÎ÷±±£¬±±²¿£¬ÒÔ¼°ÄÏ·½
-  NW = c(2,6,8,23,25,26,30,28,29,14)
+  #å°†æ•°æ®æŒ‰ç…§åœ°ç†åˆ†ä¸º 3 ä¸ªéƒ¨åˆ†ï¼Œåˆ†åˆ«ä¸ºè¥¿åŒ—ï¼ŒåŒ—éƒ¨ï¼Œä»¥åŠå—æ–¹  NW = c(2,6,8,23,25,26,30,28,29,14)
   N = c(5,9,11,16,18,21,22,31)
   S = c(1,3,4,7,10,12,13,15,17,19,20,24,27)
   data_NW = train_data[train_data$province %in% NW,]

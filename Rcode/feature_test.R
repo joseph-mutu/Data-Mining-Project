@@ -22,7 +22,6 @@ happiness_2 = data[data$happiness==2,]
 happiness_3 = data[data$happiness==3,]
 happiness_4 = data[data$happiness==4,]
 happiness_5 = data[data$happiness==5,]
-#ĞÒ¸£¶ÈÖ¸ÊıÎª3µÄ 435 Êı¾İÎª NA Öµ£¬Ôò¸ù¾İÆäËûĞÒ¸£¶ÈÎª3µÄ¼ÒÍ¥ÊÕÈëÈ¡Æ½¾ùÖµ
 happiness_3[435,"family_income"] = 49865.04 
 
 happiness_public_mean_matrix = matrix(nrow = 5, ncol = 9)
@@ -35,8 +34,8 @@ for (i in 1:5){
 }
 
 data_public_service = data[,(ncol(data)-8):ncol(data)]
-#ÔÚ¸÷Ïî¹«¹²ÁìÓòµÄÆÀ·ÖÖĞ£¬´æÔÚÒì³£Öµ£¬Ê¹ÓÃÏàÍ¬ĞÒ¸£¶ÈÖ¸ÊıÔÚ¸Ã¹«¹²ÁìÓòµÄÆ½¾ùÖµ
-#½øĞĞÌî²¹
+#?Ú¸??î¹«?????????ï¿½ï¿½??Ğ£??????ì³£Öµ??Ê¹????Í¬?Ò¸???Ö¸???Ú¸Ã¹?????????Æ½??Öµ
+#?????î²¹
 
 for (i in 1:nrow(data_public_service)){
   for (j in 1:ncol(data_public_service)){

@@ -1,28 +1,33 @@
 processTestdata <- function(data,col_names){
+  source("DataProcessFunctions.R",encoding = "utf-8")
   
-  #ÔÚÔ´ÎÄ¼şÖĞÓĞÒ»ÁĞÊÇ invest
+  data = Test_Process_col(data)
+  data = Test_carpet_inter(data)
+  #åœ¨æºæ–‡ä»¶ä¸­æœ‰ä¸€åˆ—æ˜¯ invest
   data_invest = Combine_invest_feature(data)
   data = cbind(data,data_invest)
+  data = Test_Process_invest(data)
+  
   
   data = interpolate_outlier_Test(data,col_names)
   need_inter_col = 	c("hukou_loc","family_income")
   data = interpolate_Test(data,need_inter_col)
   data = data[,col_names]
-#-----------------------------------------------------------------------
-  #Ìí¼ÓĞÂµÄÒ»ÁĞ inc_exp - income
+  #-----------------------------------------------------------------------
+  #æ·»åŠ æ–°çš„ä¸€åˆ— inc_exp - income
   data_inc_income = data.frame(abs(data[,"inc_exp"] - data[,"income"]))
   colnames(data_inc_income) = "inc_income"
   data = cbind(data,data_inc_income)
   
-  #Ìí¼ÓĞÂµÄÒ»ÁĞ BMI
+  #æ·»åŠ æ–°çš„ä¸€åˆ— BMI
   data_BMI = data.frame(abs(data[,"weight_jin"] / data[,"height_cm"]^2))
   colnames(data_BMI) = "BMI"
   data = cbind(data,data_BMI)
-  #³¢ÊÔÉ¾³ıweight_jin ºÍ height_cm µÄÖµ
+  #å°è¯•åˆ é™¤weight_jin å’Œ height_cm çš„å€¼
   weight_height = c("weight_jin","height_cm")
   data = data[,-which(names(data) %in% weight_height )]
   
-  #ÒÔÏÂ³¢ÊÔºÏ²¢ leisure¡ª_1 µ½ Leisure_11 µÄÌØÕ÷£¬È¡round(mean)
+  #ä»¥ä¸‹å°è¯•åˆå¹¶ leisureâ€”_1 åˆ° Leisure_11 çš„ç‰¹å¾ï¼Œå–round(mean)
   feature_leisure = c("leisure_1","leisure_2","leisure_3","leisure_4","leisure_5",
                       "leisure_6","leisure_7","leisure_8","leisure_9","leisure_10",
                       "leisure_11")
@@ -31,11 +36,11 @@ processTestdata <- function(data,col_names){
   data_leisure_combine = data.frame(data_leisure_combine)
   colnames(data_leisure_combine) = "leisure"
   data = cbind(data,data_leisure_combine)
-  #É¾³ıÊı¾İÖĞµÄ leisure_1 µ½ Leisure_11 
+  #åˆ é™¤æ•°æ®ä¸­çš„ leisure_1 åˆ° Leisure_11 
   data = data[,-which(names(data) %in% feature_leisure )]
   dim(data)
   
-  #ºÏ²¢ trust ÌØÕ÷
+  #åˆå¹¶ trust ç‰¹å¾
   feature_trust_stranger = c("trust_2","trust_3","trust_4","trust_7","trust_9",
                              "trust_10","trust_11","trust_12","trust_13")
   data_trust_stranger = data[,feature_trust_stranger]
@@ -53,11 +58,11 @@ processTestdata <- function(data,col_names){
   colnames(data_trust_familar_combine) = "trust_familar"
   data = cbind(data,data_trust_familar_combine)
   data_trust_familar_combine
-  #É¾³ıÊı¾İÖĞµÄ trust Êı¾İ¼¯
+  #åˆ é™¤æ•°æ®ä¸­çš„ trust æ•°æ®é›†
   data = data[,-which(names(data) %in% feature_trust_stranger )]
   data = data[,-which(names(data) %in% feature_trust_familar )]
   
-  # ÒÔÏÂ¿ªÊ¼³¢ÊÔºÏ²¢propertyÌØÕ÷
+  # ä»¥ä¸‹å¼€å§‹å°è¯•åˆå¹¶propertyç‰¹å¾
   property_own = c("property_1","property_2")
   data_property_own = data[,property_own]
   data_property_own_combine = ceiling(data.frame(apply(data_property_own,1,mean)))
@@ -65,10 +70,10 @@ processTestdata <- function(data,col_names){
   colnames(data_property_own_combine) = "property_own"
   data = cbind(data,data_property_own_combine)
   dim(data)
-  #É¾³ıÊı¾İÖĞµÄ property_1 µ½ property_2 
+  #åˆ é™¤æ•°æ®ä¸­çš„ property_1 åˆ° property_2 
   data = data[,-which(names(data) %in% property_own )]
   
-  ## ºÏ²¢property_0_8
+  ## åˆå¹¶property_0_8
   property_other = c("property_0","property_3","property_4","property_5",
                      "property_8","property_7","property_6")
   data_property_other = data[,property_other]
@@ -77,11 +82,11 @@ processTestdata <- function(data,col_names){
   data_property_other_combine = data.frame(data_property_other_combine)
   colnames(data_property_other_combine) = "property_other"
   data = cbind(data,data_property_other_combine)
-  #É¾³ıÊı¾İÖĞµÄ property_0 µ½ property_8 
+  #åˆ é™¤æ•°æ®ä¸­çš„ property_0 åˆ° property_8 
   data = data[,-which(names(data) %in% property_other )]
   
   
-  #ÒÔÏÂ³¢ÊÔºÏ²¢ Public_service
+  #ä»¥ä¸‹å°è¯•åˆå¹¶ Public_service
   feature_society = c("public_service_1","public_service_2","public_service_3",
                       "public_service_4","public_service_5","public_service_6",
                       "public_service_7","public_service_8","public_service_9")
@@ -90,18 +95,18 @@ processTestdata <- function(data,col_names){
   data_feature_society_combine = data.frame(data_feature_society_combine)
   colnames(data_feature_society_combine) = "society_service"
   data = cbind(data,data_feature_society_combine)
-  #É¾³ıÊı¾İÖĞµÄ public_service_1 µ½ public_service_9
+  #åˆ é™¤æ•°æ®ä¸­çš„ public_service_1 åˆ° public_service_9
   data = data[,-which(names(data) %in% feature_society )]
   tem_data_public_delete = data
   
-  #³¢ÊÔºÏ²¢ Meida_1 Media_2 Media_3 
+  #å°è¯•åˆå¹¶ Meida_1 Media_2 Media_3 
   feature_media_old = c("media_1","media_2","media_3","media_4")
   data_feature_media_old = data[,feature_media_old]
   data_feature_media_old_combine = round(data.frame(apply(data_feature_media_old,1,mean)))
   data_feature_media_old_combine = data.frame(data_feature_media_old_combine)
   colnames(data_feature_media_old_combine) = "media_old"
   data = cbind(data,data_feature_media_old_combine)
-  #É¾³ıÊı¾İÖĞµÄ media_1 µ½ media_2
+  #åˆ é™¤æ•°æ®ä¸­çš„ media_1 åˆ° media_2
   data = data[,-which(names(data) %in% feature_media_old )]
   
   feature_media_new = c("media_5","media_6")
@@ -110,7 +115,7 @@ processTestdata <- function(data,col_names){
   data_feature_media_new_combine = data.frame(data_feature_media_new_combine)
   colnames(data_feature_media_new_combine) = "media_new"
   data = cbind(data,data_feature_media_new_combine)
-  #É¾³ıÊı¾İÖĞµÄ media_1 µ½ media_2
+  #åˆ é™¤æ•°æ®ä¸­çš„ media_1 åˆ° media_2
   data = data[,-which(names(data) %in% feature_media_new )]
   
   data_age = data.frame(data[,"birth"])
@@ -119,9 +124,9 @@ processTestdata <- function(data,col_names){
   data = cbind(data,data_age)
   data = subset(data,select = -c(birth))
   
-  #ÒÔÏÂ¶Ô class½øĞĞ´¦Àí
+  #ä»¥ä¸‹å¯¹ classè¿›è¡Œå¤„ç†
   
-  #class - class_10_before ³ÆÎª change
+  #class - class_10_before ç§°ä¸º change
   feature_change = c("class","class_10_before")
   data_change = data[,feature_change]
   data_change_combine = data_change[,1] - data_change[,2]
@@ -129,7 +134,7 @@ processTestdata <- function(data,col_names){
   colnames(data_change_combine) = "change"
   data = cbind(data,data_change_combine)
   
-  #class_10_after - class ³ÆÎª attitude
+  #class_10_after - class ç§°ä¸º attitude
   feature_attitude = c("class_10_after","class")
   data_attitude = data[,feature_attitude]
   data_attitude_combine = data_attitude[,1] - data_attitude[,2]
@@ -144,22 +149,22 @@ processTestdata <- function(data,col_names){
   data_family_change_combine = data.frame(data_family_change_combine)
   colnames(data_family_change_combine) = "family_change"
   data = cbind(data,data_family_change_combine)
-  #É¾³ı class,class_10_before£¬class_10_after£¬class_14
+  #åˆ é™¤ class,class_10_beforeï¼Œclass_10_afterï¼Œclass_14
   data = subset(data,select = -c(class,class_14,class_10_after,class_10_before))
   dim(data)
   colnames(data)
-
-  #ºÏ²¢ status_peer ÒÔ¼° status_3_before
+  
+  #åˆå¹¶ status_peer ä»¥åŠ status_3_before
   feature_effort = c("status_3_before","status_peer")
   data_effort = data[,feature_effort]
   data_effort_combine = data_effort[,1] - data_effort[,2]
   data_effort_combine = data.frame(data_effort_combine)
   colnames(data_effort_combine) = "effort"
   data = cbind(data,data_effort_combine)
-  #É¾³ı class,class_10_before£¬class_10_after£¬class_14
+  #åˆ é™¤ class,class_10_beforeï¼Œclass_10_afterï¼Œclass_14
   data = subset(data,select = -c(status_3_before,status_peer))
   
-  #ÒÔÏÂºÏ²¢insurance
+  #ä»¥ä¸‹åˆå¹¶insurance
   
   feature_insur = c("insur_1","insur_2","insur_3","insur_4")
   data_insur = data[,feature_insur]
@@ -168,37 +173,7 @@ processTestdata <- function(data,col_names){
   colnames(data_insur_combine) = "insurance"
   data = cbind(data,data_insur_combine)
   data = data[,-which(names(data) %in% feature_insur )]
-
   
-  # #ÒÔÏÂ¶Ô¸¸Ç×Ä¸Ç×µÄÇé¿ö½øĞĞ´¦Àí
-  # #Ê×ÏÈ½«¸¸Ä¸µÄÉúÈÕ×ª»¯ÎªÄêÁä
-  # feature_f_age = c("f_birth")
-  # data_f_age = data[,feature_f_age]
-  # data_f_age = 2015 - data_f_age
-  # data_f_age = data.frame(data_f_age)
-  # colnames(data_f_age) = "f_age"
-  # data = cbind(data,data_f_age)
-  # data = data[,-which(names(data) %in% feature_f_age )]
-  # #Ä¸Ç×ÉúÈÕ --> ÄêÁä
-  # feature_m_age = c("m_birth")
-  # data_m_age = data[,feature_m_age]
-  # data_m_age = 2015 - data_m_age
-  # data_m_age = data.frame(data_m_age)
-  # colnames(data_m_age) = "m_age"
-  # data = cbind(data,data_m_age)
-  # data = data[,-which(names(data) %in% feature_m_age )]
-  # #µÃµ½Ò»¸öĞÂ feature --> ¸¸Ä¸ÄêÁä²î f_m_differ
-  # data_f_m_differ = data.frame(abs(data_m_age - data_f_age ))
-  # colnames(data_f_m_differ) = "f_m_age_differ"
-  # data = data.frame(cbind(data,data_f_m_differ))
-  # 
-  # for( i in 1:nrow(data)){
-  #   if(data[i,"f_m_age_differ"]>90){
-  #     data[i,"f_m_age_differ"] = abs(100-data[i,"f_m_age_differ"])
-  #   }
-  # }
-  # 
-  #»ñÈ¡ĞÂ feature --> ¸¸Ä¸Æ½¾ù½ÌÓıedu
   feature_f_m_edu = c("f_edu","m_edu")
   data_f_m_edu = data[,feature_f_m_edu]
   data_f_m_edu = data.frame(round(data.frame(apply(data_f_m_edu,1,mean))))
@@ -215,7 +190,25 @@ getTest_id <- function(){
   return(data.frame(test_id))
 }
 
+Test_carpet_inter <- function(data){
+  for(i in 1:nrow(data)){
+    for (j in 1:ncol(data)){
+      if(data[i,j] < 0 || is.na(data[i,j])){
+        data[i,j] = NA
+      }
+    }
+  }
+  tem_data = preProcess(data,method = "bagImpute")
+  data_tem = predict(tem_data,data)
+  data_bag_inter = data.frame(data_tem)
+  return(data_bag_inter)
+}
+
+
 getTestdata <- function(col_names){
+  
+  require(caret)
+  
   col_names = col_names[-1]
   
   dataset = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
@@ -225,7 +218,7 @@ getTestdata <- function(col_names){
 }
 
 interpolate_outlier_Test <- function(data,need_inter_col){
-
+  
   inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
   
   for (i in 1:length(need_inter_col)){
@@ -235,7 +228,7 @@ interpolate_outlier_Test <- function(data,need_inter_col){
   }
   
   for (i in 1:length(need_inter_col)){
-    #ÕÒ³öÔÚ need_inter_col ÁĞ±íÖĞĞ¡ÓÚ 0 µÄÖµ£¬ÒÔÆ½¾ùÖµ²åÖµ
+    #æ‰¾å‡ºåœ¨ need_inter_col åˆ—è¡¨ä¸­å°äº 0 çš„å€¼ï¼Œä»¥å¹³å‡å€¼æ’å€¼
     tem_need_inter_position = which(data[,need_inter_col[i]] < 0)
     num_need_inter = length(tem_need_inter_position)
     if(num_need_inter > 0 ){
@@ -248,7 +241,7 @@ interpolate_outlier_Test <- function(data,need_inter_col){
 }
 
 interpolate_Test <- function(data,need_inter_col){
-
+  
   inter_col_mean_matrix = matrix(nrow = 5, ncol = length(need_inter_col))
   
   for (i in 1:length(need_inter_col)){
@@ -258,7 +251,7 @@ interpolate_Test <- function(data,need_inter_col){
     
   }
   for (i in 1:length(need_inter_col)){
-    #ÕÒ³öÔÚ need_inter_col ÁĞ±íÖĞÎª NA µÄÖµ£¬È»ºó¸ù¾İÆäĞÒ¸£¶ÈÖ¸ÊıÒÔÏàÓ¦µÄÖµ²åÖµ
+    #æ‰¾å‡ºåœ¨ need_inter_col åˆ—è¡¨ä¸­ä¸º NA çš„å€¼ï¼Œç„¶åæ ¹æ®å…¶å¹¸ç¦åº¦æŒ‡æ•°ä»¥ç›¸åº”çš„å€¼æ’å€¼
     tem_need_inter_position = which(data[,need_inter_col[i]] %in% NA)
     num_need_inter = length(tem_need_inter_position)
     if(num_need_inter > 0 ){
@@ -267,5 +260,20 @@ interpolate_Test <- function(data,need_inter_col){
       }
     }
   }
+  return(data)
+}
+
+Test_Process_col <- function(data){
+  data = subset(data, select = -c(id,edu_yr,s_work_type,
+                                  s_work_status,invest_other,work_manage,
+                                  work_type,work_yr,work_status,join_party,
+                                  edu_other,city,county,survey_time,
+                                  property_other,invest_other))
+  return(data)
+}
+Test_Process_invest <- function(data){
+  data = subset(data, select = -c(invest_0,invest_1,invest_2,
+                                  invest_3,invest_4,invest_5,invest_6,invest_7,
+                                  invest_8))
   return(data)
 }

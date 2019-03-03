@@ -1,0 +1,105 @@
+<!-- library(knitr) -->
+
+---
+title: "Happiness Prediction"
+output: html_document
+author: "Wang Yuxin"
+date: "17/03/2019"
+indent: true
+---
+
+```{r setup, include=FALSE}
+source("TestSetProcess.R",encoding = "utf-8")
+source("writeResult.R",encoding = "utf-8")
+source("test_functions.R",encoding = "utf-8")
+source("DataProcessFunctions.R",encoding = "utf-8")
+require(caret)
+require(Hmisc)
+require(corrplot)
+```
+
+
+## Problem Understanding
+
+  The dataset is created by [Chinese General Social Survey(CGSS)](http://cnsda.ruc.edu.cn/index.php?r=projects/view&id=62072446), which is free open to the public. Meanwhile, this dataset is also used to be the contest dataset of **Tianchi Contest** -- ["Happiness Mining"](https://tianchi.aliyun.com/competition/entrance/231702/introduction). 
+  
+  As the result of the contest, the [LeaderBoard](https://tianchi.aliyun.com/competition/entrance/231702/rankingList) could provide the on-time ranking.
+  This contest takes the survey results of [CGSS](http://cnsda.ruc.edu.cn/index.php?r=projects/view&id=62072446),selecting the part of the variables tooken by the survey. The goal of the contest is to predict the happiness.
+
+
+## Data Undetstanding
+
+  The provided dataset includes two types data set -- training sets and testing sets. Each training set and test set have two versions: complete version and simplified version. The simplified data have the same observations with the complete version but with only part features. The data label is combined with features of the training data.
+
+* Data.Ouliter counts the number of data with negative label value, which is not allowed in the dataset. 
+* The missing Ratio represents the ratio that the missing value including NA and NULL account for in the whole data set.
+  
+```{r,echo=FALSE} 
+library(pander) 
+panderOptions('table.split.table', Inf) 
+# set.caption('Data Summary') 
+data_info = matrix(ncol = 5,nrow = 4)
+data_info = data.frame(data_info)
+colnames(data_info) = c("Name","Data","Data.Outlier","Feature","Missing Ratio")
+data_info[,"Name"] = c("train.comp","test.comp","train.abbr","test.abbr")
+data_info[,"Data"] = c(8000,2968,8000,2968)
+data_info[,"Data.Outlier"] = c(12,'\\\\',12,'\\\\')
+data_info[,"Feature"] = c(140,139,42,41)
+data_info[,"Missing Ratio"] = c(56903/(8000*140),21331/(2968*139),20197/(8000*42),7558/(2968*41))
+pander(data_info)
+# knitr::kable(x=data_info)
+```
+
+### Error Calculation
+  For the error evaluation, the calculation form is:
+$$score = \frac{1}{n} \sum_1^n (y_i - y^*)^2, 0\leq y_i\leq 5$$
+
+* $y_i$ is the predict value and $y^*$is the true label. n is the number of test data, which is 2968 here.
+
+##Data Prepartion
+
+###Data Validity and Completeness
+
+In this report, using three way to interpolate the data.
+
+* Using the mean feature value to interpolate the NA value.
+
+* Based on five levels of happiness, first extract 5 kinds of data matrix correspoing to each happiness level. For NA interpolation, select the corresponding data matrix based on the NA data's happiness level, using mean feautre value to interpolate the NA value.
+
+* Using bagImpute method in "caret" package to interpolate the value.
+
+  In order to compare the three methods, this report select one feature " " with no missing value in original data and set 30 missing value randomly manually. The diffferences between interpolation vaule and the real vaue are shown below:
+#这里进行三种不同方法的插值的比较
+  
+###Feature recstuction
+
+Because of the high dimensions and high correlation between features, this report uses three methods to lower the dimension and to eliminate the correlation from features.
+
+
+<figure class="half">
+    <img src="./Pics/complete_cor.png">
+    <img src="./Pics/Combine_feature.png">
+</figure>
+```{r echo=FALSE}
+# traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+# testdata = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
+# traindata = Outlier_delete(traindata)
+# traindata_id = traindata[,"id"]
+# traindata_happiness = traindata[,"happiness"]
+# traindata = subset(traindata,select = -c(happiness))
+# complete_data = data.frame(rbind(traindata,testdata))
+# #testdata 从 7969 开始 到 10956 结束
+# complete_data = Bag_inter(complete_data)
+# cor_pca = cor(complete_data)
+# corrplot(cor_pca,method="color",tl.pos = 'n')
+```
+
+* some features introduced in the data set have low interpretation to the happiness level. In order to have clear meaning between features and happiness level, this report manually combined features and create the new feature.
+在进行完所有的数据筛选之后，可以再打印一副相关变量的图出来
+
+
+
+
+##Modelling
+
+  This report compare 5 different models including. linear regression, Support Vector Machine, BP Neural Network, Bagging Regression and Random Forest regression. The results tables shows that BP Neural network could have the best performance at the training set, but it is to be over-fitting. s

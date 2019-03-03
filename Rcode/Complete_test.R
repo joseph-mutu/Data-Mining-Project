@@ -21,19 +21,11 @@ data_id = data.frame(data[,"id"])
 data = Interpolate_ALL(data)
 col_names_for_test = get_Col_names_For_test(data)
 data = Combine_All_features(data)
-
-dim(data)
-
-tem_store = data
-colnames(data)
-
-colnames(data)
 data = Province_centra_scale(data)
 # data = central_scale(data)
 
 avg_score = 0.0
 for ( i in 1:100){
-  #抽样train和test
   index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
   train_data = data.frame(data[index==1,])
   test_data = data.frame(data[index==2,])
@@ -86,7 +78,7 @@ SVM_test_result_1 = predict(model_SVM_1,test_data)
 SVM_test_result_1 = round(SVM_test_result_1)
 score = result_compare(data.frame(SVM_test_result_1),test_label)
 
-#lm模型
+#lm模??
 Model_linear = lm(formula = happiness ~.,data = data )
 summary(Model_linear)
 
@@ -97,7 +89,6 @@ score
 
 
 
-#以下对 test_set 进行同样的处理
 
 
 dataset = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
@@ -111,14 +102,14 @@ dataset = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test
 # result = predict(reg,data.frame(test_set))
 
 
-#Province_SVM 模型
+#Province_SVM 
 # result_test = testData_province_SVM(data,test_set,test_set_id)
 # result_test
 
-test_set = getTestdata(col_names_for_test)
 
 # test_set = subset(test_set,select = -c(f_birth,f_work_14,m_birth,
 #                                        m_work_14))
+test_set = getTestdata(col_names_for_test)
 
 test_set = subset(test_set,select = -c(survey_type,province,nationality,edu,income,
                                political,floor_area,health_problem,hukou,
