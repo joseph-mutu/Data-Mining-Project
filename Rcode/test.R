@@ -107,3 +107,34 @@ writeResult(result)
 new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
 class(new_result[2,2])
 new_result[2,2]
+
+library(ggplot2)
+data_info = matrix(ncol = 7,nrow = 8)
+data_info = data.frame(data_info)
+colnames(data_info) = c("Model","bag.trainerror","bag.testerror","bag.bias","Happ.traierror","Happ.testerror","Happ.bias")
+data_info[,"Model"] = c("NN","SVM","SVM.pro","LM","LM.pro","XGboost","RF","Bagging")
+data_info[,"bag.trainerror"] = c(0.34,0.39,0.23,0.47,0.45,0.002,0.08,0.55)
+data_info[,"bag.testerror"] = c(0.78,0.49,0.53,0.50,0.53,0.58,0.53,0.61)
+data_info[,"bag.bias"] = c(0.44,0.096,0.30,0.030,0.070,0.58,0.45,0.057)
+data_info[,"Happ.traierror"] = c(0.33,0.43,0.26,0.47,0.46,0.006,0.06,0.41)
+data_info[,"Happ.testerror"] = c(30.1357,0.506,0.51,0.509,0.539,0.65,0.74,0.93)
+data_info[,"Happ.bias"] = c(29.80,0.070,0.25,0.033,0.075,0.65,0.68,0.517)
+data_info
+
+res_par <- data.frame(cbind(data_info[,1],data_info[,3]))
+colnames(res_par) = c("Model","test")
+res2 = res_par
+ggplot(res2,aes(Model,test))+ 
+  geom_point(aes(x='SVM',y=res2[2,2]),size=15,col='pink') +
+  geom_point(aes(col=Model,size = 3))+
+  geom_text(aes(y=as.numeric(test)+0.2,label=paste(Model,sep = '.')),
+            size = 4)+
+  geom_hline(yintercept = 2,linetype = 2,col = 'red') +
+  geom_text(aes(x=1,y=1.9,label=paste('Rule: 0.5')),
+            size = 4,col = 'red')+
+  theme(legend.position = 'none',
+        panel.background = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())+
+  labs(title = 'Regression Comparations',x = 'Model',y = 'RMSE')
+

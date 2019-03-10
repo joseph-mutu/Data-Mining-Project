@@ -27,21 +27,22 @@ traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_tr
 traindata_id = traindata[,"id"]
 
 # testdata = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv")
-# traindata = Outlier_delete(traindata)
-# traindata_happiness = traindata[,"happiness"]
+traindata = Outlier_delete(traindata)
+traindata_happiness = traindata[,"happiness"]
 # traindata = subset(traindata,select = -c(happiness))
 # complete_data = data.frame(rbind(traindata,testdata))
 # #testdata 从 7969 开始 到 10956 结束
 # complete_data = Bag_inter(complete_data)
 
 
-complete_Data = Get_complete_data_carpet()
+complete_data = Get_complete_data_carpet()
 dim(complete_data)
 cor_complete = cor(complete_data)
 corrplot(cor_complete,method="color",tl.pos = 'n')
 #=============================使用 prepossess 函数进行降维=================================
 Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
 complete_data_pca = predict(Process_data_pca,complete_data)
+dim(complete_data_pca)
 cor_pca = cor(complete_data_pca)
 corrplot(cor_pca,method="color",tl.pos = 'n')
 #================================使用自己写的函数进行特征合并=========================================================
@@ -65,11 +66,11 @@ dim(complete_data_pca)
 
 
 #================================将train_data与test_data进行分裂============================
-train_data = complete_data_pca_combine[1:7988,]
+train_data = complete_data_pca[1:7988,]
 train_data = data.frame(cbind(traindata_happiness,train_data))
 colnames(train_data)[1] = "happiness"
 colnames(train_data)
-test_data = complete_data_pca_combine[7989:10956,]
+test_data = complete_data_pca[7989:10956,]
 dim(train_data)
 dim(test_data)
 Model_linear = lm(formula = happiness ~.,data = train_data )
@@ -91,16 +92,24 @@ f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " 
 nn <- neuralnet(f,data=train_data,hidden=c(10,5),linear.output=T)
 #==========================================================================
 #XGBoost
-xgb1 <- xgboost(data = as.matrix(train1[,-c('trees')]),
-                label = train1$trees,
+xgb1 <- xgboost(data = as.matrix(train_tem),
+                label = train_data$happiness,
                 objective='reg:linear',nrounds=300)
-pre6 = predict(xgb1,as.matrix(test1[,-c('trees')]))
+train_tem = train_data
+train_tem = subset(train_tem,select = -c(happiness))
+train_pre = predict(xgb1,as.matrix(train_tem))
+score = result_compare(data.frame(train_pre),data.frame(train_data$happiness))
+score
+
+train_data$happiness
+pre6 = predict(xgb1,as.matrix(test_data))
+length(pre6)
 #==========================================================================
 
 
 
 SVM_test_result_1 = predict(model_SVM,test_data)
-writeResult(SVM_test_result_1)
+writeResult(data.frame(pre6))
 new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
 class(new_result[2,2])
 new_result[2,2]

@@ -46,6 +46,7 @@ data = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_c
 # data_id = data.frame(data[,"id"])
 #幸福度插值
 data_happiness_interpol = Happiness_inter(data)
+dim(data_happiness_interpol)
 #Carpet 函数插值
 ptm = proc.time()
 data_bag = Bag_inter(data)
@@ -54,29 +55,39 @@ proc.time() - ptm
 #单纯使用平均值进行插值
 data_mean = Mean_inter(data)
 
-col_names_for_test = get_Col_names_For_test(data_bag)
+col_names_for_test = get_Col_names_For_test(data_happiness_interpol)
 
 
-
-complete_data = Get_complete_data_carpet()
-traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
-traindata = Outlier_delete(traindata)
-traindata_happiness = traindata[,"happiness"]
-#================================使用 preProces 函数进行降维处理=========================
+#=============================经过happiness 插值之后，根据 mean 获取test_data ===================
+test_set = getTestdata(col_names_for_test)
+test_set = data.frame(scale(test_set,center=T,scale=T))
+dim(test_set)
+#==========================================================================================
+complete_data = Get_complete_data_carpet() #获取插值后的数据，因为插值时间较长，所以存入了文件
+tem = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+tem = Outlier_delete(tem)
+traindata_happiness = tem[,"happiness"]
+#================================使s用 preProces 函数进行降维处理=========================
 Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
-complete_data_pca = predict(Process_data_pca,complete_data)
+complete_data = predict(Process_data_pca,complete_data)
 
-#========================================================================================
-data_bag = Combine_All_features(data_bag)
-data_bag = central_scale(data_bag)
+#=====================使用人工进行的特征合并===================================================================
+data_happiness = Combine_All_features(data_happiness_interpol)
+data_happiness = central_scale(data_happiness)
 data_bag = delete_features_for_linear(data_bag)
-
+data_happiness_label = data.frame(data_happiness[,"happiness"])
+dim(data_happiness_label)
+data_happiness_delete_happ = subset(data_happiness,select = -c(happiness))
+colnames(data_happiness_delete_happ)
+dim(data_happiness)
 #======================将 test_data 与 train_data 分离，并对 train_data 进行采取 train_data 以及 test_data
-train_data = complete_data_pca[1:7988,]
+train_data = complete_data[1:7988,]
 train_data = data.frame(cbind(traindata_happiness,train_data))
 colnames(train_data)[1] = "happiness"
-colnames(train_data)
-test_data = complete_data_pca[7989:10956,]
+test_data = complete_data[7989:10956,]
+
+
+#=======================真实的traindata 分成traindata 和testdata===================
 
 index = sample(2,nrow(train_data),replace = T,prob = c(0.8,0.2))
 train_data_train = data.frame(train_data[index==1,])
@@ -85,61 +96,255 @@ train_data_test = subset(train_data_test,select = -c(happiness))
 train_data_test_label = data.frame(train_data[index==2,1])
 
 
-
-
-
-
-
 #=======================函数测试方法=============================================
 #SVM 函数测试
 type_reg = "eps-regression"
 type_reg2 = "nu-regression"
-tuned <- tune.svm(happiness ~ .,type = type_reg2,kernel ="radial",data = data_bag,gamma = 10^(-6:-1),cost = 10^(1:2))
-summary(tuned)
-model_SVM = svm(happiness ~., data = data_bag,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
+# tuned <- tune.svm(happiness ~ .,type = type_reg2,kernel ="radial",data = data_bag,gamma = 10^(-6:-1),cost = 10^(1:2))
+# summary(tuned)
+ptm = proc.time()
+model_SVM = svm(happiness ~., data = data_happiness,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
+proc.time() - ptm
+train_data_tem = data_happiness
+train_data_tem = subset(train_data_tem,select = -c(happiness))
+train_result = predict(model_SVM,train_data_tem)
+train_error = result_compare(data.frame(train_result),data.frame(data_happiness$happiness))
+train_error
 #===================================
 #lm 函数
-Model_linear = lm(formula = happiness ~.,data = data_bag )
-#===================================
-#随机森林
-reg_RF = randomForest(happiness~.,data=train_data_train,importance=TRUE,proximity = TRUE,ntree=500)  
-pred<-predict(reg_RF,newdata=train_data_test)  
-score = result_compare(data.frame(pred),train_data_test_label)
-#===================================
-#Bagging
-reg_boost =bagging(happiness~.,data=data,coob=TRUE,control=rpart.control(cp=0.025))  
-test_set = data.frame(scale(test_set,center=T,scale=T))
-dim(test_set)
-result = predict(reg_boost,newdata = test_set)
-#===================================
-#NN
-n <- names(train_data)
-f <- as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
-nn <- neuralnet(f,data=train_data,hidden=c(10,5),linear.output=T)
-#===================================================================================
-#XGBoost
-xgb <- xgboost(data = as.matrix(train_data_train),
-                label = train_data_train$happiness,
-                objective='count:poisson',nrounds=1000)
-pre6 = data.frame(predict(xgb,as.matrix(train_data_test)))
-score = result_compare(pre6,train_data_test_label)
-score
-#===================================================================================
-#glm
-glm1 = glm(happiness~.,data = train_data_train,
-            family = gaussian(link = 'identity'))
-summary(glm1)
-pre1 = predict(glm1,train_data_test)
-score = result_compare(data.frame(pre1),train_data_test_label)
+ptm = proc.time()
+Model_linear = lm(formula = happiness ~.,data = data_happiness)
+proc.time() - ptm
+lm_test_result = predict(Model_linear,train_data)
+score = result_compare(data.frame(lm_test_result),data.frame(traindata_happiness))
 score
 
+#trainerror
+train_result = predict(Model_linear,train_data_tem)
+train_error = result_compare(data.frame(train_result),data.frame(data_happiness$happiness))
+train_error
+#===================================
+#随机森林
+ptm = proc.time()
+reg_RF = randomForest(happiness~.,data=train_data,importance=TRUE,proximity = TRUE,ntree=300)  
+pred = predict(reg_RF,newdata=test_data)  
+proc.time() - ptm
+
+
+#train_error======================================================================================
+train_data_tem = data_happiness
+train_data_tem = subset(train_data_tem,select = -c(happiness))
+
+
+reg_RF = randomForest(happiness~.,data=data_happiness,importance=TRUE,proximity = TRUE,ntree=300)  
+pred = predict(reg_RF,newdata=train_data_tem)  
+score = result_compare(data.frame(pred),data.frame(data_happiness$happiness))
+score
+#=======================================================================================
+
+writeResult(data.frame(pred))
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+
+#===================================
+#Bagging
+ptm = proc.time()
+reg_boost =bagging(happiness~.,data=train_data,coob=TRUE,control=rpart.control(cp=0.025))  
+result = predict(reg_boost,newdata = test_data)
+proc.time() - ptm
+
+#train_error================================================
+
+reg_boost =bagging(happiness~.,data=data_happiness)  
+train_result = predict(reg_boost,newdata = train_data)
+score  = result_compare(data.frame(train_result),data.frame(data_happiness$happiness))
+score
+#================================================
+
+
+writeResult(data.frame(result))
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+#===================================
+#NN
+n = names(data_happiness)
+f = as.formula(paste("happiness ~", paste(n[!n %in% "happiness"], collapse = " + ")))
+ptm = proc.time()
+nn = neuralnet(f,data=data_happiness,hidden=c(10,5),linear.output=T,stepmax = 1e+06,threshold = 0.05,err.fct = "sse")
+proc.time() - ptm
+dim(data_happiness)
+dim(test_set)
+net.predict = compute(nn,test_set)
+result = data.frame(net.predict$net.result)
+result = round(result)
+writeResult(result)
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+
+
+#train error
+train_data_tem = train_data
+train_data_tem = subset(train_data_tem,select = -c(happiness))
+train_tem = compute(nn,train_data_tem)
+result = data.frame(train_tem$net.result)
+result = round(result)
+score = result_compare(result,data.frame(data_happiness$happiness))
+score
+dim(result)
+
+#===================================================================================
+#XGBoost
+colnames(data_happiness)
+train_data = data_happiness
+
+train_data = subset(train_data,select = -c(happiness))
+
+dim(data_happiness_delete_happ)
+dim(test_set)
+
+ptm = proc.time()
+xgb <- xgboost(data = as.matrix(train_data),
+                label = as.matrix(data_happiness$happiness),
+                objective='reg:linear',nrounds=1000)
+proc.time() - ptm
+
+pre6 = data.frame(predict(xgb,as.matrix(test_set)))
+
+score = result_compare(pre6,train_data_test_label)
+
+writeResult(data.frame(pre6))
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+
+#trainerror
+pre6 = data.frame(predict(xgb,as.matrix(train_data)))
+score = result_compare(pre6,train_data_test_label)
+
+
+#===================================================================================
+#SVM.province
+
+# index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
+# train_data = data.frame(data[index==1,])
+# test_data = data.frame(data[index==2,])
+# test_data = subset(test_data,select = -c(happiness))
+# test_label = data.frame(data[index==2,1])
+# test_id = data.frame(data_id[index==2,1])
+#Bag Impute===============================
+complete_data = Get_complete_data_carpet()
+#happiness Impute=========================
+complete_data = data_happiness
+
+original_data = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+original_data = Outlier_delete(original_data)
+train_data_province = data.frame(original_data[,"province"])
+train_id = data.frame(original_data[,"id"])
+traindata_happiness = data.frame(original_data[,"happiness"])
+colnames(train_data_province) = 'province'
+colnames(traindata_happiness) = 'happiness'
+
+
+complete_data = subset(complete_data,select = -c(province))
+
+
+traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+traindata = Outlier_delete(traindata)
+
+
+traindata_happiness = traindata[,"happiness"]
+train_id = traindata[,"id"]
+test.tem = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv')
+test_id = test.tem[,"id"]
+
+Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
+complete_data = predict(Process_data_pca,complete_data)
+
+complete_data = cbind(traindata_happiness,complete_data,train_data_province)
+complete_data = subset(complete_data,select = -c(happiness))
+
+train_data = complete_data[1:7988,]
+train_data = data.frame(cbind(traindata_happiness,train_data))
+colnames(train_data)[1] = "happiness"
+colnames(train_data)
+test_data = complete_data[7989:10956,]
+
+ptm = proc.time()
+result_test = testData_province_SVM(train_data,test_data,test_id)
+proc.time() - ptm
+
+
+#train_error========================
+result_test = testData_province_SVM(complete_data,complete_data,train_id)
+re
+score = result_compare(data.frame(result_test),data.frame(complete_data$happiness))
+score 
+#=========================
+writeResult(result_test)
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+#===================================================================================
+#LM.province
+# index = sample(2,nrow(data),replace = T,prob = c(0.8,0.2))
+# train_data = data.frame(data[index==1,])
+# test_data = data.frame(data[index==2,])
+# test_data = subset(test_data,select = -c(happiness))
+# test_label = data.frame(data[index==2,1])
+# test_id = data.frame(data_id[index==2,1])
+complete_data = Get_complete_data_carpet()
+train_data_province = data.frame(complete_data[,"province"])
+colnames(train_data_province) = 'province'
+complete_data = subset(complete_data,select = -c(province))
+traindata = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_train_complete.csv')
+traindata = Outlier_delete(traindata)
+train_id = traindata[,'id']
+traindata_happiness = traindata[,"happiness"]
+test.tem = read.csv('D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_test_complete.csv')
+test_id = test.tem[,"id"]
+
+Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
+complete_data = predict(Process_data_pca,complete_data)
+complete_data = cbind(complete_data,train_data_province)
+
+train_data = complete_data[1:7988,]
+train_data = data.frame(cbind(traindata_happiness,train_data))
+colnames(train_data)[1] = "happiness"
+colnames(train_data)
+test_data = complete_data[7989:10956,]
+
+ptm = proc.time()
+result_test = testData_province_lm(train_data,train_data,train_id)
+score = result_compare(data.frame(result_test),data.frame(traindata_happiness))
+score
+proc.time() - ptm
+
+#train_error====================================================
+
+result_test = testData_province_lm(complete_data,complete_data,train_id)
+score = result_compare(data.frame(result_test),data.frame(complete_data$happiness))
+score 
+#=============================================================
+
+
+writeResult(result_test)
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+
+score = result_compare(data.frame(result_test),test_label)
 
 #================================获取测试数据集并写入数据================================================
 
 
 
 SVM_test_result_1 = predict(model_SVM,test_set)
-writeResult(SVM_test_result_1)
+pre1 = predict(glm1,test_data)
+
+writeResult(pre6)
 new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
 class(new_result[2,2])
 new_result[2,2]

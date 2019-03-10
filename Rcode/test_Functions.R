@@ -149,7 +149,8 @@ testData_province_SVM <- function(train_data,test_data,test_id){
   test_data = data.frame(test_data)
   test_id = data.frame(test_id)
   
-  #将数据按照地理分为 3 个部分，分别为西北，北部，以及南方  NW = c(2,6,8,23,25,26,30,28,29,14)
+  #将数据按照地理分为 3 个部分，分别为西北，北部，以及南方  
+  NW = c(2,6,8,23,25,26,30,28,29,14)
   N = c(5,9,11,16,18,21,22,31)
   S = c(1,3,4,7,10,12,13,15,17,19,20,24,27)
   data_NW = train_data[train_data$province %in% NW,]
