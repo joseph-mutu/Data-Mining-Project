@@ -25,20 +25,6 @@ library(xgboost)
 n_Cores <- detectCores()##检测你的电脑的CPU核数
 cluster_Set <- makeCluster(n_Cores)##进行集群
 registerDoParallel(cluster_Set)
-#Interpolate_all
-#1. 合并 invest1_8,只要存在一种就认为存在 invest 行为
-#2. 删除异常值太多，存在中文，调查时间等特征
-  # id,edu_yr,s_work_type,
-  # s_work_status,invest_other,work_manage,
-  # work_type,work_yr,work_status,join_party,
-  # edu_other,city,county,survey_time,
-  # property_other,invest_0,invest_1,invest_2,
-  # invest_3,invest_4,invest_5,invest_6,invest_7,
-  # invest_8,invest_other
-#3. 对有负数值进行插值
-#3.1 可以使用幸福值进行插值
-#3.2 可以直接使用平均值进行插值
-
 #尝试使用 carpet 函数的 prepross 函数进行插值
 
 
@@ -70,9 +56,10 @@ traindata_happiness = tem[,"happiness"]
 #================================使s用 preProces 函数进行降维处理=========================
 Process_data_pca  = preProcess(complete_data,method=c("scale","center","pca"))
 complete_data = predict(Process_data_pca,complete_data)
-
+dim(complete_data)
 #=====================使用人工进行的特征合并===================================================================
 data_happiness = Combine_All_features(data_happiness_interpol)
+dim(data_happiness)
 data_happiness = central_scale(data_happiness)
 data_bag = delete_features_for_linear(data_bag)
 data_happiness_label = data.frame(data_happiness[,"happiness"])
@@ -103,13 +90,22 @@ type_reg2 = "nu-regression"
 # tuned <- tune.svm(happiness ~ .,type = type_reg2,kernel ="radial",data = data_bag,gamma = 10^(-6:-1),cost = 10^(1:2))
 # summary(tuned)
 ptm = proc.time()
-model_SVM = svm(happiness ~., data = data_happiness,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
+model_SVM = svm(happiness ~., data = train_data,type = type_reg2,kernel ="radial",gamma = 0.001,cost = 10) 
 proc.time() - ptm
 train_data_tem = data_happiness
 train_data_tem = subset(train_data_tem,select = -c(happiness))
-train_result = predict(model_SVM,train_data_tem)
+
+
+train_result = datapredict(model_SVM,test_data)
 train_error = result_compare(data.frame(train_result),data.frame(data_happiness$happiness))
 train_error
+
+train_result = round(train_result)
+writeResult(data.frame(train_result))
+new_result = read.csv("D:/Study/Jean Monnet/Data Mining/Project/Data/happiness_submit.csv")
+class(new_result[2,2])
+new_result[2,2]
+
 #===================================
 #lm 函数
 ptm = proc.time()
