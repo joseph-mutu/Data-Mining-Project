@@ -1,0 +1,323 @@
+<!-- library(knitr) -->
+
+---
+title: "Happiness Prediction"
+output: html_document
+author: "Wang Yuxin"
+date: "17/03/2019"
+indent: true
+---
+
+```{r setup, include=FALSE}
+source("TestSetProcess.R",encoding = "utf-8")
+source("writeResult.R",encoding = "utf-8")
+source("test_functions.R",encoding = "utf-8")
+source("DataProcessFunctions.R",encoding = "utf-8")
+require(caret)
+require(Hmisc)
+require(corrplot)
+library(magick)
+
+```
+  
+## Problem Understanding
+
+  This report focuses on the happiness regression problem. The dataset is created by Chinese General Social Survey(CGSS), which is free open to the public. Meanwhile, this dataset is also used to be the dataset of **Tianchi Contest** -- "Happiness Mining". This contest takes the survey results of CGSS, selecting the part of the variables taken by the survey. The goal of the contest is to predict the happiness.
+  
+  The evaluation of the model is based on the test error calculated by TianChi platform.
+  
+### Why this problem 
+
+  The ultimate goal of technology is to serve for people, to create the better world. Social research, which focuses more on the variable's Interpretability, has direct impact on the people's life and the implementation of the future policy. In order to find more explainable and understandable relationship, feature engineering is one important step.
+  
+  Through the exploration of different features included in happiness prediction, I could have more concrete understand about the relationship between variables and the meaning of variable clusters. 
+
+## Data Undetstanding
+
+  The questionnaire covers the whole China based on the three major economic zones. The following figure shows the sampling point. The green, yellow and blue parts represent the western, the central and the eastern economic zone respectively.
+
+```{r economic zone, echo=FALSE,out.width= '50%',fig.align = 'center',fig.asp='sample_distribution'}
+
+knitr::include_graphics(c("./Pics/sample_distribution.png"))
+
+```
+
+  The dataset includes two types of data -- training sets and testing sets. Each type has two versions: complete and simplified. The simplified data has the same number of observations with complete data but with only partial features. Data label 'happiness' is attached with the training data.
+  
+* Data.Ouliter counts the number of data  with negative label value, which is not allowed in the dataset. 
+* The missing ratio represents the ratio that how much the missing value including NA and NULL account for in the whole data set.
+
+```{r,echo=FALSE,fig.align = 'center'} 
+library(pander) 
+# panderOptions('table.split.table', Inf) 
+set.caption('Data Summary')
+data_info = matrix(ncol = 5,nrow = 4)
+data_info = data.frame(data_info)
+colnames(data_info) = c("Name","Data","Data.Outlier","Feature","Missing Ratio")
+data_info[,"Name"] = c("train.comp","test.comp","train.abbr","test.abbr")
+data_info[,"Data"] = c(8000,2968,8000,2968)
+data_info[,"Data.Outlier"] = c(12,NA,12,NA)
+data_info[,"Feature"] = c(140,139,42,41)
+data_info[,"Missing Ratio"] = c(56903/(8000*140),21331/(2968*139),20197/(8000*42),7558/(2968*41))
+# pander(data_info)
+knitr::kable(x=data_info)
+```
+
+### Error Calculation
+  The test error is calculated by:
+  
+$$score = \frac{1}{n} \sum_1^n (y_i - y^*)^2, 0\leq y_i\leq 5$$
+
+$y_i$ is the predict value and $y^*$is the true label. n is the number of test data, which is 2968 here.
+
+
+##Data Prepartion
+
+###Data Validity and Completeness
+
+This report uses two methods to interpolate the data and make the comparison.
+
+* Based on five levels of happiness, mean value is used to interpolate the invalid data, including negative value, NA and NULL.
+
+* Use the bagImpute method in "caret" package to interpolate the value.
+
+  In order to compare two methods, this report selects one feature "public_service_8" which has no missing value in the original dataset and set 30 missing value randomly. The performance of two interpolation methods is shown below:
+  
+```{r inter compare, echo=FALSE,fig.align = 'center',fig.cap = "Imputations Compare",out.width='60%'}
+
+knitr::include_graphics("./Pics/comare_inter.png")
+
+```
+
+  From the figure, we could observe that the ability of "bagImpute" has more power to impute the NA value. Meanwhile, although interpolation based on happiness level could follow the pattern of the original data to some extent, it remains steady most.
+
+###Feature reconstruction
+
+Because of the high dimensionality and high correlation in the original data, this report tries both PCA and manual way to lower the dimension and to eliminate the correlation from features.
+
+```{r Data and PCA Data, fig.cap = "Correlation map of Original Data",echo=FALSE,fig.align = 'center',out.width='50%'}
+complete_Data = Get_complete_data_carpet()
+cor_complete = cor(complete_Data)
+corrplot(cor_complete,method="color",tl.pos = 'n')
+
+```
+
+#### Manual Method
+
+Some features that are introduced in the data set have low interpretation to the happiness prediction. In order to have clear meaning among features and happiness, this report manually combined features. The dimensions are lowered from 117 to 59.
+
+The manual dimensionality reduction follows the rules:
+
+1. Combine sub-divisions into one feature. For continues variables, the mean method is used. For category variable, if one sub-division is true, then the new feature is true.
+* For example, feature 'trust_1' to 'trust_13' describes the respondent's trust level to different types of people, which are combined into two new features, 'trust_strange' and 'trust_familar'.
+
+2. Get the inspiration from the chapter 4 *World Happiness Report 2018<sup>[1]</sup>*, new features are created in order to explore influence of the personal factors.
+* BMI index is created by 'height_cm' and 'weight_jin'.
+* 'class_10_after' describes the respondent's goal after 10 years. 'class' describes the respondent's current level in the society(1~10). The new features 'attitude' is created by the subtraction of 'class_10_after' and 'class'. Meanwhile 'effort' is created by "status_3_before" and "status_peer".
+
+
+
+#### PCA
+
+The PCA is used to make the comparision with the manual one, which lowers the dimensions from 117 to 89.
+
+The performance of two methods to eliminate the correlation among features are shown below:
+
+```{r manual one and PCA,echo=FALSE,fig.align = 'center',out.width= '50%',fig.cap = "Correlation after manual method(left) and PCA(right)"}
+par(mfrow = c(1,2))
+complete_data_combine_feature = Combine_All_features(complete_Data)
+cor_complete_combine = cor(complete_data_combine_feature)
+corrplot(cor_complete_combine,method="color",tl.pos = 'n')
+
+Process_data_pca  = preProcess(complete_Data,method=c("scale","center","pca"))
+complete_data_pca = predict(Process_data_pca,complete_Data)
+cor_pca = cor(complete_data_pca)
+corrplot(cor_pca,method="color",tl.pos = 'n')
+```
+
+The ability of PCA to eliminate the features correlation shown by the result is better than the manual one, but the final goal of predicting is not only to get the happiness prediction but also to explore the relationship between the features and the corresponding happiness level. PCA uses the combination of original features to eliminate the correlation but lead to worse interpretation of data.
+
+## Modelling
+
+  This report takes 6 common models and 2 models based on the provincial distribution to make the comparison, including linear regression, Support Vector Machine, BP Neural Network, Bagging Regression, XGBoost, Random Forest regression and SVM.pro and LM.pro.
+  
+###Models based on three economic zones
+
+  In Hu ChunPing's research<sup>[2]</sup>, the economic distribution is considered and is set to be the factor features of the data.
+  Based on the "province" feature of the data, this report divides the dataset into three parts and trains three models for economic zones respectively.
+
+  
+## Evaluation
+
+###Result Comarision
+
+The following shows that model performance on two types of the dataset.
+
+* bag.xxx means that the data is interpolated by the 'bagimpute' method. 'Bag.bias' shows the disparity between the training error and the test error.
+
+* Happ.xxx means that the data is interpolated based on the happiness level. 'Happ.bias' shows the disparity between the training error and the test error.  
+  
+```{r result table,echo=FALSE,fig.cap = "Result Table",fig.align='center'} 
+
+library(pander) 
+# panderOptions('table.split.table', Inf) 
+set.caption('Result Table')
+data_info = matrix(ncol = 7,nrow = 8)
+data_info = data.frame(data_info)
+colnames(data_info) = c("Model","bag.trainerror","bag.testerror","bag.bias","Happ.traierror","Happ.testerror","Happ.bias")
+data_info[,"Model"] = c("NN","SVM","SVM.pro","LM","LM.pro","XGboost","RF","Bagging")
+data_info[,"bag.trainerror"] = c(0.34,0.39,0.23,0.47,0.45,0.002,0.08,0.55)
+data_info[,"bag.testerror"] = c(0.78,0.49,0.53,0.50,0.53,0.58,0.53,0.61)
+data_info[,"bag.bias"] = c(0.44,0.096,0.30,0.030,0.070,0.58,0.45,0.057)
+data_info[,"Happ.traierror"] = c(0.33,0.43,0.26,0.47,0.46,0.006,0.06,0.41)
+data_info[,"Happ.testerror"] = c(0.66,0.506,0.51,0.509,0.539,0.65,0.74,0.93)
+data_info[,"Happ.bias"] = c(0.32,0.070,0.25,0.033,0.075,0.65,0.68,0.517)
+# pander(data_info)
+knitr::kable(x=data_info)
+
+
+```
+
+  Because of better performance shown by BagImpute, this report takes the data interpolated by 'Bagimpute' to do the result comparison and the final result.
+
+```{r Bagimpute result,echo=FALSE,fig.align='center',out.width='50%'}
+data_info = matrix(ncol = 7,nrow = 8)
+data_info = data.frame(data_info)
+colnames(data_info) = c("Model","bag.trainerror","bag.testerror","bag.bias","Happ.traierror","Happ.testerror","Happ.bias")
+data_info[,"Model"] = c("NN","SVM","SVM.pro","LM","LM.pro","XGboost","RF","Bagging")
+data_info[,"bag.trainerror"] = c(0.34,0.39,0.23,0.47,0.45,0.002,0.08,0.55)
+data_info[,"bag.testerror"] = c(0.78,0.49,0.53,0.50,0.53,0.58,0.53,0.61)
+data_info[,"bag.bias"] = c(0.44,0.096,0.30,0.030,0.070,0.58,0.45,0.057)
+data_info[,"Happ.traierror"] = c(0.33,0.43,0.26,0.47,0.46,0.006,0.06,0.41)
+data_info[,"Happ.testerror"] = c(0.66,0.506,0.51,0.509,0.539,0.65,0.74,0.93)
+data_info[,"Happ.bias"] = c(0.32,0.070,0.25,0.033,0.075,0.65,0.68,0.517)
+
+res_par <- data.frame(cbind(data_info[,1],data_info[,3]))
+colnames(res_par) = c("Model","test")
+res2 = res_par
+ggplot(res2,aes(Model,test))+ 
+  geom_point(aes(x='SVM',y=res2[2,2]),size=15,col='pink') +
+  geom_point(aes(col=Model,size = 3))+
+  geom_text(aes(y=as.numeric(test)+0.2,label=paste(Model,sep = '.')),
+            size = 4)+
+  geom_hline(yintercept = 2,linetype = 2,col = 'red') +
+  geom_text(aes(x=1,y=1.9,label=paste('Rule: 0.5')),
+            size = 4,col = 'red')+
+  theme(legend.position = 'none',
+        panel.background = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())+
+  labs(title = 'Regression Comparations',x = 'Model',y = 'MSE')
+```
+
+* Based on the table and the figure above, SVM shows the best perfromance.
+* **On the date of the submission, current ranking is 24/813, final result is 0.495**.
+
+### Training time
+
+  Because of the high dimension of the data, BP Neural Network is hard to achieve the convergence. Linear regreesion and XGBoost show the fastest speed during the training, and linear regression shows the better performance than XGBoost. SVM has relative short training time, but it takes 6 hours to use 'svm.tuned' to find the best gamma and cost. The parameters table is attached with appendix.
+
+```{r training time table,echo=FALSE,fig.cap = "Training Time Table",fig.align = 'center',out.width='50%'} 
+set.caption('Result Table')
+
+# pander(data_info)
+
+name = c('SVM','SVM.pro','LM','LM.pro','XGboost','Bagging')
+time = c(33,14,1,1,10,34)
+id = c(1,2,3,4,5,6)
+df = data.frame(cbind(name,id,time))
+p = ggplot(df, aes(x = id, y = time, color = name, group = factor(1))) + 
+  geom_point(size = 3.8) +
+  geom_line(size = 0.8) +
+  geom_text(aes(label = name, vjust = 1.1, hjust = -0.5, angle = 45), show.legend = TRUE)
+p
+
+```
+
+  The training time plot does not include Neural Network(1160s) and Random Forest(160s) due to the huge difference between those two models' time and others.
+
+### Conclusion
+
+#### Marriage,obesity and Happiness
+
+  During the step of feature reconstruction, an interesting pattern is discovered."happy marriage is the another name of fatness ", which is verified by the research of SMU<sup>[3]</sup>.
+
+  In the following picture, four columns are extracted from the original data - 'happiness','marital','gender' and 'BMI'. In this report, BMI index is divided into 5 levels, which correspond to "Under weight","Normal","Over weight","Obseity","Serious Obseity" respectively<sup>[4]</sup>. In order to eliminate the effect of imbalanced data, the same amount of data is taken by the random seed for married people and unmarried people.
+  
+```{r obseity and Marriage, echo=FALSE,out.width= '30%'}
+
+knitr::include_graphics(c("./Pics/married and unmarried.png","./Pics/married.png","./Pics/male and female.png"))
+```
+
+From the figures, we could observe that 
+  
+1. Compared with unmarried people, the BMI index of married people has an uptrend. Furthermore, the happiness ratio of married people(79%) is higher than the happiness ratio of unmarried people(73%).
+
+2. For married people, people who think they are happy tend to have higher BMI index than those people who are not happy.
+
+3. Based on figure 3, 'gender' seems does not have so much effect on people's BMI index for both happy and unhappy people.
+
+
+####Happiness Distribution
+
+  The right figure shows three economic zones of China. The left figure represents the happiness distribution of different provinces. The value is calculated by the average happiness value and normalized.
+  
+  In the generic sense, the higher income could make people happier. However, happiness level does not comply the same pattern with the income level. In China, the east of China(**green part in left**) and the center of China(**blue part in left**) develop much better than the West of China(**yellow part in left**) in economy. But it shows even higher happiness level than some costal cities like Guang xi and Guang dong,which has much higher economic strength.
+  
+Based on the happiness distribution, we could observe that the happiness level does not absolutely comply with the economic development. But the specific relationship between the economic development and the happiness needs further analysis.
+
+
+```{r happiness distribution, echo=FALSE,out.width= '40%'}
+
+
+
+knitr::include_graphics(c("./Pics/China Three Economic Zone.jpg", './Pics/ECharts.png'))
+
+```
+
+  
+  
+  
+  
+## Reference  
+
+[1] Helliwell, J., Layard, R., & Sachs, J. (2018). World Happiness Report 2018, New York: Sustainable Development Solutions Network. https://s3.amazonaws.com/happiness-report/2018/WHR_web.pdf
+
+[2] 胡春萍, 吴建南, and 王颖迪. "相对收入, 收入满意度与主观幸福感." 西安交通大学学报 (社会科学版) 3 (2015): 85-94. http://skxb.xjtu.edu.cn/oa/pdfdow.aspx?Sid=201503013
+
+[3] Andrea Meltzer. 2013. Does this happy marriage make me look fat? Retrieved from https://www.smu.edu/News/2013/andrea-meltzer-vancouver-03april2013
+
+[4] Wikipedia. 2014. WikipediA: Body Mass Index,BMI. Retrieved from https://zh.wikipedia.org/wiki/%E8%BA%AB%E9%AB%98%E9%AB%94%E9%87%8D%E6%8C%87%E6%95%B8
+
+
+  
+  
+## Appendix
+
+### SVM tuned table
+```{r svm.tuned, echo=TRUE}
+# Parameter tuning of ‘svm’:carpet 插值
+# 
+# - sampling method: 10-fold cross validation 
+# 
+# - best parameters:
+#  gamma cost
+#  0.001   10
+# 
+# - best performance: 0.478614 
+# 
+# - Detailed performance results:
+#    gamma cost     error dispersion
+# 1  1e-06   10 0.6474660 0.03676411
+# 2  1e-05   10 0.5086461 0.02857941
+# 3  1e-04   10 0.4918832 0.02951442
+# 4  1e-03   10 0.4786140 0.02939583
+# 5  1e-02   10 0.5761659 0.02739436
+# 6  1e-01   10 0.6141765 0.03051138
+# 7  1e-06  100 0.5086209 0.02860033
+# 8  1e-05  100 0.4924471 0.02951301
+# 9  1e-04  100 0.4867442 0.03015043
+# 10 1e-03  100 0.5095313 0.03345684
+# 11 1e-02  100 0.7488746 0.03618671
+# 12 1e-01  100 0.6141769 0.03051142
+```
